@@ -1,0 +1,20 @@
+{
+  "checks": {
+    "all_finite": true,
+    "expected_raw_rows": 720000,
+    "expected_scenario_count": 24,
+    "methods_each_scenario": 30,
+    "nested_reference_counts": {
+      "0.25": 10000,
+      "0.5": 2500,
+      "1.5": 289,
+      "2.5": 100
+    },
+    "no_extra_labelled_forward_samples": true,
+    "primary_tokens_exclude_source_ids": true,
+    "raw_rows": 720000,
+    "scenario_count": 24,
+    "survey_query_independently_acquired": true
+  },
+  "status": "PASS"
+}

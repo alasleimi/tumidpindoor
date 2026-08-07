@@ -1,0 +1,187 @@
+{
+  "fairness_axis": "same acquisition locations and calibration-map budget",
+  "included": [
+    {
+      "method": "majdi_mpurge_map_corrected_prose",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "majdi_mca_eps1.6_k1",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "majdi_original_mpurge_P5_corrected",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "ablation_A_chamfer_inverse_top3",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "ablation_B_temperature_softmax_only",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "ablation_C_path_count_empty_only",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay/path count + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "ablation_D_chamfer_temperature_pathcount",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay/path count + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "subset_consensus_chamfer",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "graph_diffusion_corrected",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + survey RP coordinates/adjacency",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "frozen_evomdp_rank",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay-derived set distances + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "beta_survival_multimodal",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + received power + AoA + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "coherent_adp_toa",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "noisy 8-element CIR + delay + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "survival_cir_toa",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + received power + AoA + noisy CIR + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "assigned_vt_consensus_aoa",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + AoA + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "residual_graph_multimodal",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + received power + AoA + noisy CIR + survey adjacency",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "delay_feature_extratrees",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay only; supervised stored calibration",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "multimodal_feature_extratrees",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay + power + AoA + noisy CIR summaries; supervised stored calibration",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "rrle_moe",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "delay-derived expert predictions/disagreement + survey RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "pointnet_delay_direct",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "unordered delay tokens; supervised stored calibration",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "pointnet_multimodal_direct",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "unordered delay/power/AoA tokens; supervised stored calibration",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "caez_grid_probability_delay",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "unordered delay encoding -> survey-grid probability",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "residual_to_analytic_delay",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "unordered delay tokens + corrected analytic coordinate",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "pointnet_analytic_reranker_delay",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "query/reference delay sets + corrected analytic diagnostics/RP coordinates",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "cross_attention_multimodal",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "genuine query-path/reference-path cross-attention over delay/power/AoA",
+      "same_acquisition_locations": true
+    },
+    {
+      "method": "candidate_self_attention_multimodal",
+      "status": "RUNNABLE_AND_RUN",
+      "features": "path self-attention pooling + permutation-equivariant candidate attention",
+      "same_acquisition_locations": true
+    }
+  ],
+  "excluded": [
+    {
+      "method_family": "AoD-conditioned fingerprinting",
+      "status": "NOT_INSTANTIATED_NO_REQUESTED_METHOD_REQUIRES_AOD",
+      "reason": "The requested MAP methods run here use receive AoA and/or noisy CIR and do not require AoD. A same-acquisition noisy transmit-array/channel-sounding AoD is eligible under this benchmark; the present helper simply does not instantiate that sensor. Latent ray departure vectors would remain forbidden as direct inputs.",
+      "not_penalized_for_feature_type": true
+    },
+    {
+      "method_family": "native multi-transmitter Beta VT survival",
+      "status": "TASK_MISMATCH_NATIVE_FORM",
+      "reason": "The MAP scene has one AP and the native method outputs/filters VTs per elementary transmitter. A measurable delay/power/AoA Beta-survival localization adapter is run instead.",
+      "not_penalized_for_feature_type": true
+    },
+    {
+      "method_family": "oracle assigned-VT consensus",
+      "status": "ORACLE_EXCLUDED",
+      "reason": "True VT/ray associations are simulator identities. The run reconstructs unlabeled VT clusters from survey range/AoA endpoints and performs association-free query consensus.",
+      "not_penalized_for_feature_type": true
+    },
+    {
+      "method_family": "SDF/NeRF floor-plan-conditioned localizer",
+      "status": "MISSING_ACQUISITION_CHANNEL",
+      "reason": "No measured depth/images/floor-plan mesh is part of these 80/100 acquisitions. Supplying the simulator geometry would expose a clean auxiliary channel.",
+      "not_penalized_for_feature_type": true
+    },
+    {
+      "method_family": "temporal HMM/Kalman/GRU",
+      "status": "TASK_MISMATCH",
+      "reason": "The 100 locked queries are independently drawn static locations, not a causal trajectory.",
+      "not_penalized_for_feature_type": true
+    }
+  ]
+}

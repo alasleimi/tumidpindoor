@@ -1,0 +1,188 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=18mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,longtable,tabularx,array}
+\usepackage[table]{xcolor}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black}
+\setlist{nosep,leftmargin=*}
+\newcommand{\m}{\,\mathrm{m}}
+\newcommand{\paper}{\textcolor{blue!60!black}{paper-reported}}
+\newcommand{\diag}{\textcolor{orange!70!black}{diagnostic}}
+\title{Faithful Indoor-Localisation Benchmarks for Majid's Four Papers\\\large Early evidence release}
+\author{Executable reconstruction and audit}
+\date{7 August 2026}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+This meeting-ready release contains completed reconstructed evaluations for MPUrge--MAP and SMART--LEA, paper-extracted protocols for all four papers, readable method recipes, the valid causal-HMM result, and the causal multi-level-map experiment. It clearly separates final reconstructed evidence, paper-reported context, and smoke diagnostics. The full release will add the completed original-MPUrge aggregation, corrected CNN rerun, richer per-condition tables, and closed source-provenance manifests.
+\end{abstract}
+
+\section{Fairness rule: match acquisitions, not feature shape}
+This report does \emph{not} impose a delay-only rule. A challenger may use delay, noisy received power, AoA/AoD, complex CIR/CSI, or another physically measurable feature from the same acquisition. Noise is applied coherently: lower SNR perturbs power, delay and angle and increases path dropout. We do not give a method clean power while corrupting only delay.
+
+What is matched is the information and calibration budget. If Majid's protocol gives $N$ survey locations and $Q$ query acquisitions, every challenger gets those same locations and acquisitions. It may not request a dense labelled map, thousands of ungranted simulator examples, unmeasured candidate fingerprints, exact simulator ray/VT identifiers, the true query coordinate, or a clean latent channel. A measurable transmitter channel or physical transmitter identity is allowed.
+
+The original simulator projects, raw data and random seeds are unavailable. Thus our numbers are executable \emph{replacement-scene evidence under a paper-shaped protocol}, not claims to exactly reproduce a published number. Published values are shown only as context and never pooled with reconstructed results.
+
+\section{Completed MPUrge--MAP leaderboard}
+The locked suite has 16 conditions, 100 held-out queries per condition and 25 methods: 40,000 primary rows plus 33,600 learned-seed rows. Every method sees the same 80 independently acquired survey fingerprints and queries. Mean error is
+\[
+ \mathrm{ME}=Q^{-1}\sum_q\lVert\widehat{\mathbf x}_q-\mathbf x_q\rVert_2.
+\]
+Intervals use a paired clustered bootstrap over identical physical queries. Gain is corrected Majid-style error minus challenger error; positive is better.
+
+\begin{longtable}{@{}p{.48\linewidth}rrp{.24\linewidth}@{}}
+\toprule Method & Mean (m)&Gain (m)&95\% paired CI (m)\\\midrule
+\endfirsthead\toprule Method&Mean&Gain&95\% paired CI\\\midrule\endhead
+\rowcolor{green!9}Beta-survival multimodal&0.2528&0.8110&[0.7224,0.9033]\\
+\rowcolor{green!9}Survival-CIR + ToA ExtraTrees&0.2601&0.8036&[0.7146,0.8963]\\
+\rowcolor{green!9}Analytic-anchor residual multimodal graph&0.2745&0.7893&[0.6973,0.8843]\\
+Candidate self-attention, multimodal&0.3349&0.7289&[0.6452,0.8133]\\
+Genuine candidate cross-attention, multimodal&0.3434&0.7204&[0.6373,0.8063]\\
+Assigned-VT receiver consensus with AoA&0.3463&0.7174&[0.6088,0.8257]\\
+PointNet multimodal direct regressor&0.4373&0.6264&[0.5220,0.7331]\\
+Multimodal feature ExtraTrees&0.4480&0.6158&[0.5246,0.7076]\\
+DICHASUS-style coherent ADP + ToA $k$NN&0.7746&0.2891&[0.1858,0.3923]\\
+RRLE/map-aware mixture of experts&1.0445&0.0193&[--0.0137,0.0506]\\
+Path-count special case only&1.0589&0.0049&[--0.0036,0.0133]\\
+\rowcolor{blue!8}\textbf{Corrected Majid-style MPUrge--MAP}&\textbf{1.0638}&0&reference\\
+Temperature softmax only&1.0721&--0.0084&[--0.0149,--0.0016]\\
+Subset-consensus head&1.0752&--0.0115&crosses zero\\
+PointNet analytic reranker, delay&1.0961&--0.0324&crosses zero\\
+Symmetric Chamfer + inverse top-3 only&1.1077&--0.0440&crosses zero\\
+Spatial graph diffusion, delay&1.1084&--0.0446&confirmed adverse\\
+Analytic residual graph, delay&1.1252&--0.0614&adverse\\
+Combined Chamfer/temperature/path-count&1.1345&--0.0708&adverse\\
+EvoMDP feature/rank fusion&1.1353&--0.0715&adverse\\
+Delay-only ExtraTrees&1.2039&--0.1401&adverse\\
+MCA nearest fingerprint&1.3143&--0.2506&adverse\\
+Original MPUrge P5, corrected window&1.3160&--0.2522&adverse\\
+CAEZ-style delay probability MLP&1.3387&--0.2749&adverse\\
+PointNet delay-only direct regressor&1.3509&--0.2872&adverse\\\bottomrule
+\end{longtable}
+
+The corrected conclusion differs from an earlier headline. Chamfer alone did \emph{not} improve the corrected baseline here, so the old $0.4992$ versus $1.4138\m$ claim is retracted as a general component claim. The robust positive result is the family that uses survival-aware multimodal information from the same acquisition. Behavioral leakage, ordering, empty-set, duplicate-path and finite-output audits pass. The run-recorded source hash is retained; a shared receiver file was edited after launch, so byte-for-byte closure against the later disk copy remains an explicitly open provenance item.
+
+\section{Completed SMART--LEA reconstruction}
+The full run contains 24 scenarios: seeds $\{29,47,71\}$, clean and matched-noisy acquisition, and survey spacings $\{0.25,0.5,1.5,2.5\}\m$. It evaluates 30 methods over 720,000 raw prediction rows. Integrity checks pass. The table reports the best eligible method at each spacing; RMSE is shown because a rare large tail can make it disagree strongly with the mean.
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}llXrr@{}}\toprule
+Channel&Spacing&Best reconstructed method&Mean&RMSE\\\midrule
+clean&0.25&fixed-height 3-D geometric-cross LEA-4&0.0198&0.0224\\
+clean&0.50&fixed-height 3-D geometric-cross LEA-4&0.0562&0.8452\\
+clean&1.50&range--power--AoA assigned-VT consensus&0.3197&0.3715\\
+clean&2.50&range--power--AoA assigned-VT consensus&0.8576&1.2751\\
+matched noisy&0.25&delay+CIR coherent method&0.1338&0.1524\\
+matched noisy&0.50&multimodal query--reference attention&0.2266&0.3131\\
+matched noisy&1.50&range--power--AoA assigned-VT consensus&0.4931&0.5753\\
+matched noisy&2.50&range--power--AoA assigned-VT consensus&1.0460&1.9119\\\bottomrule
+\end{tabularx}
+\end{center}
+
+The large $0.50\m$ clean RMSE despite $0.0562\m$ mean reflects a very rare catastrophic tail (median $0.0187\m$, 90th percentile $0.0342\m$); it must not be hidden. In the same reconstruction, Majid-style LEA-4 means at spacings $0.25/0.5/1.5/2.5$ are $0.0369/0.0791/6.2071/9.4343\m$ clean and $0.9224/1.8427/6.8121/9.7291\m$ noisy. MCA means are $0.1018/0.2380/6.3847/9.4690\m$ clean and $0.9929/1.9665/6.9322/9.6041\m$ noisy. These are comparisons inside the replacement $25\times25\m$ scene, not against the paper's exact floor plan.
+
+For context only, the paper reports MCA/LEA-1/LEA-4 mean errors at $0.25\m$ spacing of $0.14/0.04/0.01\m$, and at $2.5\m$ spacing of $1.73/1.45/1.30\m$. The reconstructed trend is much harsher at sparse spacing, which is exactly why the scene boundary must be explicit.
+
+\section{MPUrge VT and CNN status}
+\subsection{Original MPUrge virtual-transmitter mapping}
+A reflected path with range $r=c\tau$ and arrival direction $\mathbf u$ proposes a virtual transmitter $\mathbf v=\mathbf x+r\mathbf u$. MPUrge associates proposals across an ordered calibration sequence, retains persistent VTs and purges transient clutter. The corrected code uses total window $P=5$ (half-window two), paper conflict ordering, per-transmitter support and dynamic threshold descent until exhaustion. Unknown cardinality is primary; true cardinality is diagnostic only.
+
+The smoke run exercised all 13 executable branches and all 26 dynamic survival thresholds. Bernoulli/RFS tracking obtained \diag{} VT $F_1=0.9554$, symmetric-Chamfer set error $0.0559\m$, and downstream localisation $0.286\m$. These are branch diagnostics, not a final leaderboard; the full aggregation is audited separately. Exact ray/VT IDs are forbidden. A supervised VT PointNet requiring 5,000 extra labelled simulator examples is excluded because of extra information budget, not because PointNet or multimodal features are forbidden.
+
+\subsection{CNN paper}
+The paper-shaped training set has 20 reference points, 60 AP positions and seven obstruction configurations ($8{,}400$ labelled fingerprints per room), at 60 GHz, 2 GHz bandwidth, nominal 20 dB SNR and at most nine paths. The paper reports Room-A RMSE $1.82\m$ classifier/$1.84\m$ regressor versus MCA $2.58$--$2.60\m$; Room-B $2.14/1.47\m$ versus MCA $3.64$--$3.65\m$. These are \paper{} values.
+
+Our corrected design separates a privileged \emph{paper-condition-map} bracket, which is told the true obstruction map, from a deployable \emph{environment-blind} bracket, which pools all maps and selects only from observed noisy fingerprints. Validation maps are now fit-only, and validation queries use independently corrupted repeat acquisitions, preventing identity self-matching. Older smoke values are intentionally not ranked because this correction changes selection; the corrected rerun belongs in the full release.
+
+\section{Four protocols in plain language}
+\paragraph{SMART--LEA.} Input is one independently noisy array-CIR per measured survey/query location and transmitter; delay, power and AoA are extracted from it. A sparse reference map is built, locked off-grid positions are test-only, and the output is a receiver coordinate. Report mean, median, RMSE and tail percentiles by spacing/noise. LEA constructs one local candidate per transmitter, ranks them by residual, then combines the best $L$; LEA-4 uses four.
+
+\paragraph{MPUrge.} Input is an ordered sequence of path sets plus known \emph{calibration} receiver poses. Output is a persistent VT set and downstream location. Held-out query positions are never used for association. Score set precision/recall/$F_1$, Chamfer set error, map cardinality and downstream position error.
+
+\paragraph{MPUrge--MAP.} Input is a sparse map of 80 measured reference fingerprints and one noisy query. References and locked off-grid queries are disjoint; learned choices use separate validation seeds/queries. The output is 2-D position and the primary score is paired Euclidean error. Empty/missed/duplicate path cases have fixed finite behavior.
+
+\paragraph{CNN.} Input is a fixed-length tensor of up to nine observed paths for an AP--receiver link. Training uses the paper-shaped $20\times60\times7$ links per room; test uses 1,600 spatially off-grid links. The network outputs either one of 20 reference classes or continuous $(x,y)$. Report RMSE and the complete Euclidean-error distribution, separately for privileged and environment-blind brackets.
+
+\section{Reproducible explanations of the method families}
+\paragraph{MCA and corrected MPUrge--MAP.} MCA returns the coordinate of the measured reference with smallest fingerprint distance. MPUrge--MAP keeps the three smallest-score references and computes
+\[
+ \widehat{\mathbf x}=\frac{\sum_{i\in\mathcal N_3}(s_i+\epsilon)^{-1}\mathbf x_i}
+ {\sum_{i\in\mathcal N_3}(s_i+\epsilon)^{-1}}.
+\]
+The score, tie behavior, padding, empty sets and $\epsilon$ must be frozen before test.
+
+\paragraph{Symmetric Chamfer and subset heads.} For path sets $A,B$,
+\[
+d_{\rm Ch}=\frac1{2|A|}\sum_{a\in A}\min_{b\in B}\rho(a,b)+
+\frac1{2|B|}\sum_{b\in B}\min_{a\in A}\rho(a,b).
+\]
+The two directions penalize missing and extra paths. Temperature weighting uses $w_i\propto e^{-s_i/T}$ with validation-frozen $T$. Subset consensus forms estimates from multiple top-candidate subsets and chooses the most internally consistent. None improved the corrected MAP baseline here.
+
+\paragraph{Spatial graph and analytic residual.} Connect measured survey positions to spatial neighbors, with Laplacian $L$. Smooth evidence by $(I+\lambda L)\widetilde z=z$. A safer learned version starts from analytic $\mathbf x_0$ and predicts only $\Delta\mathbf x$, so $\widehat{\mathbf x}=\mathbf x_0+\Delta\mathbf x$. Multimodal residual learning ranked third; delay-only graph smoothing oversmoothed scene boundaries.
+
+\paragraph{PointNet/DeepSets.} Embed paths independently and pool:
+\[
+h=\operatorname{pool}_{j}\phi(p_j),\qquad \widehat{\mathbf x}=g(h).
+\]
+Max/mean pooling makes $h$ invariant to path order. A direct head predicts coordinates. A candidate reranker combines query/reference embeddings, their difference and the measured reference coordinate, then predicts compatibility. Multimodal direct PointNet was strong; delay-only direct PointNet failed.
+
+\paragraph{Genuine cross-attention.} Query paths form $Q$, candidate-reference paths form $K,V$:
+\[
+\operatorname{Attn}(Q,K,V)=\operatorname{softmax}\left(QK^\top/\sqrt d+M\right)V,
+\]
+where $M$ masks padding. Pool attended query tokens to one score per \emph{measured} candidate, then softmax scores into coordinate weights. Random path permutations in training and evaluation verify invariance. The $0.3434\m$ result is real attention and does not inspect unmeasured candidates.
+
+\paragraph{Candidate self-attention.} Each measured candidate is a token containing its coordinate, analytic score and query--reference features. A Transformer lets candidates compare before producing weights. No candidate index encoding is supplied, and evaluation permutes candidates. It scored $0.3349\m$.
+
+\paragraph{Beta survival and Bernoulli/RFS.} A path track has survival $\pi\sim\operatorname{Beta}(a,b)$. Detection increments $a$; a credible miss increments $b$. Marginalizing $\pi$ avoids deleting a reflector after one dropout. In the RFS version, every VT also has existence probability $r$, updated from detection, clutter and survival likelihoods; birth/confirmation/deletion are probabilistic. Association uses observable geometry/features, never true ray identity.
+
+\paragraph{DiffAssign-K.} Build an observed-path-to-map cost matrix, add dummy rows/columns for birth/miss, and use Sinkhorn normalization for a soft nearly doubly-stochastic assignment. Choose cardinality $K$ by a frozen BIC-like penalty; true cardinality is never primary.
+
+\paragraph{Assigned-VT consensus.} Every assigned VT/path gives a receiver hypothesis, e.g. $\mathbf x_j=\mathbf v_j-c\tau_j\mathbf u_j$. Robust inverse-residual weights fuse the hypotheses. This analytic use of same-acquisition AoA reached $0.3463\m$.
+
+\paragraph{Coherent ADP and Survival-CIR.} Coherent ADP compares normalized complex angle--delay profiles made directly from noisy array CIRs, then interpolates the nearest measured coordinates. Survival-CIR feeds fixed summaries of CIR coherence, delay, noisy power, angle and track survival into ExtraTrees. Hyperparameters are validation-frozen. Its $0.2601\m$ performance, close to Beta survival, points to survival-aware multimodal representation rather than one special neural architecture.
+
+\paragraph{EvoMDP and RRLE.} EvoMDP combines frozen distances/ranks using coefficients selected only on validation scenes. RRLE is a map-aware mixture of analytic, nearest-neighbor and learned experts whose router sees uncertainty and map-density features. Neither produced a confirmed MAP gain here.
+
+\section{Sequential supplement: causal analytic HMM}
+For ordered trajectories, combine the analytic observation likelihood with a causal motion prior:
+\[
+p(\mathbf x_t\mid\mathbf y_{1:t})\propto p(\mathbf y_t\mid\mathbf x_t)
+\sum_{\mathbf x_{t-1}}p(\mathbf x_t\mid\mathbf x_{t-1})p(\mathbf x_{t-1}\mid\mathbf y_{1:t-1}).
+\]
+The frozen HMM scored $0.3802\m$ versus $0.9654\m$ for framewise analytic MAP: gain $0.5852\m$, 95\% CI $[0.4958,0.6783]\m$, over 270 physical frames/1,350 condition rows. It uses neither future measurements nor query truth. It applies only when temporal ordering is available, so it is not smuggled into static leaderboards.
+
+\section{Multi-level/irregular maps: causal positive findings}
+The selection policy sees 72 possible sites but a site's fingerprint is hidden until it buys that measurement. Thirty-six protected query fingerprints/coordinates never enter selection. Policies use nested acquisition paths and budgets 12, 20 and 30; the audit found zero reads of unselected survey features.
+
+At budget 12, geometry-first farthest sampling plus finite-element interpolation was best: $1.5251\m$; no adaptive policy improved it. At budget 20, causal FEM-variation selection plus polynomial/RBF localisation gave $1.4745\m$ versus farthest $1.5463\m$, a point gain $0.0718\m$ with group-bootstrap CI $[-0.1534,0.3035]\m$. At budget 30, causal GP-variance plus polynomial/RBF gave $1.3434\m$ versus $1.4271\m$, point gain $0.0837\m$, CI $[-0.1002,0.2674]\m$. The latter two are promising point estimates, not statistically confirmed wins.
+
+The practical policy is: first acquire geometric coverage; only after enough measured sites support a stable field model, place later fingerprints at high causal interpolation variation/posterior variance. The earlier $1.5935\m$ ``goal-surplus'' claim is retracted because it inspected fingerprints at unmeasured candidate sites. Measuring a dense map and later discarding points is also not calibration saving.
+
+\section{Top three defensible ideas}
+\begin{enumerate}
+\item \textbf{Survival-aware multimodal fingerprints:} Beta survival and Survival-CIR reduce reconstructed MAP error from $1.0638\m$ to $0.2528$--$0.2601\m$, with paired intervals far from zero.
+\item \textbf{Physics anchor plus learned correction:} the multimodal residual graph reaches $0.2745\m$, learning a bounded correction instead of unconstrained coordinates.
+\item \textbf{Permutation-invariant candidate reasoning:} self/cross-attention reaches $0.3349/0.3434\m$ using only measured candidates and survives order-invariance tests.
+\end{enumerate}
+
+\section{Release ledger}
+\begin{tabularx}{\linewidth}{@{}p{.21\linewidth}p{.19\linewidth}X@{}}\toprule
+Suite&Status&Claim boundary\\\midrule
+MPUrge--MAP&full results complete&40,000 primary rows; bootstrap and behavioral audits pass; source-copy hash closure pending.\\
+SMART--LEA&full results complete&24 scenarios, 720,000 rows; replacement scene; recorded receiver hash differs from later edited disk copy.\\
+MPUrge VT&full audit pending&Smoke table is diagnostic only.\\
+CNN&corrected rerun pending&Published values included; leakage-affected old smoke excluded.\\
+Causal HMM&complete&Sequential protocols only.\\
+Irregular map&complete&Causal audit passes; no confirmed adaptive win.\\\bottomrule
+\end{tabularx}
+
+\section*{Paper identifiers}
+M. Abdmoulah and E. Steinbach: \emph{MPUrge}, DOI 10.1109/IWCMC65282.2025.11059597; \emph{MPUrge--MAP}, DOI 10.1109/IWCMC69287.2026.11580087; \emph{SMART--LEA}, DOI 10.1109/IWCMC69287.2026.11579893. M. Abdmoulah, N. Neji and E. Steinbach: CNN fingerprint localisation, DOI 10.1109/IWCMC69287.2026.11580049.
+\end{document}

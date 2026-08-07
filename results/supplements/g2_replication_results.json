@@ -1,0 +1,54 @@
+{
+  "schema": "g2-replication-results-v1",
+  "status": "PASS",
+  "freeze_sha256": "4d467ec1b53fc68784f34ff99547d43ecf08106cb2d1a0dca847b9a5ec0fc962",
+  "config": {
+    "beta": 8.0,
+    "sigma_m": 0.6,
+    "stay": 0.0,
+    "top_k": 5
+  },
+  "g2": {
+    "rows": 1350,
+    "mean_error_m": 0.3801961073556008,
+    "median_error_m": 0.2792589565163903,
+    "p90_error_m": 0.7906793618606239
+  },
+  "pointnet": {
+    "rows": 1350,
+    "mean_error_m": 0.8120533503782058,
+    "median_error_m": 0.34052067150645293,
+    "p90_error_m": 1.3886599344419883
+  },
+  "analytic": {
+    "rows": 1350,
+    "mean_error_m": 0.9653736413977172,
+    "median_error_m": 0.35028523182533466,
+    "p90_error_m": 2.419393620018787
+  },
+  "primary_vs_pointnet": {
+    "physical_frame_macro_reduction_m": 0.4318572430226049,
+    "physical_frame_bootstrap_95ci_m": [
+      0.35408907414562873,
+      0.5137149387956987
+    ],
+    "physical_frames": 270,
+    "pass": true
+  },
+  "secondary_vs_analytic": {
+    "physical_frame_macro_reduction_m": 0.5851775340421164,
+    "physical_frame_bootstrap_95ci_m": [
+      0.4958378901973028,
+      0.6783047439321075
+    ],
+    "physical_frames": 270
+  },
+  "integrity": {
+    "query_coordinates_enter_predictor": false,
+    "hyperparameters_retuned": false,
+    "same_rows": true,
+    "g2_uses_strongest_nine": true,
+    "pointnet_uses_all_paths": true
+  },
+  "raw_rows": "C:\\Users\\Ala\\Desktop\\IDP PROJECT\\research\\campaign_8plus4\\g2_replication_rows.jsonl"
+}

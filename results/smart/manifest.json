@@ -1,0 +1,174 @@
+{
+  "applicability_and_exclusions": {
+    "aod": "excluded: the simple image-source receiver does not supply a defensible reflected departure-angle extractor",
+    "extra_forward_samples": "forbidden; measurement-only training uses the one stored survey acquisition",
+    "global_exhaustive_mpurge": "excluded at dense maps for tractability; exact corrected scoring is disclosed behind a shared top-24 Chamfer prefilter",
+    "included_multimodal": "range, observed power, extracted AoA unit vector, and compact noisy array-PDP/CIR features at identical acquisition locations",
+    "original_smart_scene": "unavailable; all results are replacement-scene evidence",
+    "simulator_ray_ids": "excluded from all primary inputs; physical Tx partition retained only for separately labelled legacy diagnostic"
+  },
+  "code_hashes": {
+    "experiments\\four_paper_report\\multimodal_receiver.py": "5a4867f3d1363c54a226becfa03eaa7497ae22da83bd7377b326eb86847bcf01",
+    "experiments\\four_paper_report\\run_smart_fair_suite.py": "4118224883cf7c328401ebcb69265e8c72d3c9a3e74cca6f8c23d63d4d2d0056",
+    "experiments\\four_paper_report\\smart_fair_core.py": "81270249229e0651dfc5a4a4fc7c9c3bd42ce642cbcc53a8691a4bc33546ce55",
+    "experiments\\research_level\\evo_mdp_rank_multiscene_confirmation_results.json": "4ec4bc6da7c1b9195763edcb3eb35b035ec43f26800a6db4b97a14f8df00acfc",
+    "experiments\\research_level\\majdi_paper_methods.py": "fa34ef97007c8f035b0e0e5e5d7ba33027d8a9c71d29c604d3a19bb557166bb6"
+  },
+  "conditions": [
+    {
+      "angle_sigma_deg": 0.0,
+      "name": "clean",
+      "path_dropout_probability": 0.0,
+      "power_sigma_db": 0.0,
+      "range_sigma_m": 0.0
+    },
+    {
+      "angle_sigma_deg": 5.0,
+      "name": "matched_noisy",
+      "path_dropout_probability": 0.0,
+      "power_sigma_db": 2.0,
+      "range_sigma_m": 0.25
+    }
+  ],
+  "dense_survey_points": 10000,
+  "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "method_metadata": {
+    "analytic_anchor_residual": {
+      "inputs": "delay features + Chamfer anchor diagnostics",
+      "track": "learned_hybrid"
+    },
+    "caez_style_cir_probability_mlp": {
+      "inputs": "noisy array CIR/PDP",
+      "track": "learned_multimodal"
+    },
+    "caez_style_delay_probability_mlp": {
+      "inputs": "fixed delay vector",
+      "track": "learned"
+    },
+    "candidate_path_cross_attention_multimodal": {
+      "inputs": "joint noisy query/reference tokens + map coordinates",
+      "track": "learned_multimodal"
+    },
+    "candidate_pointnet_reranker_delay": {
+      "inputs": "delay query/reference sets + map coordinates",
+      "track": "learned"
+    },
+    "chamfer_temperature": {
+      "inputs": "delay set",
+      "track": "primary"
+    },
+    "coherent_array_pdp_temperature": {
+      "inputs": "noisy array CIR/PDP",
+      "track": "multimodal"
+    },
+    "combined_delay_score": {
+      "inputs": "delay set",
+      "track": "primary"
+    },
+    "corrected_mpurge_map_prefilter24": {
+      "inputs": "delay set",
+      "track": "primary"
+    },
+    "delay_cir_combined": {
+      "inputs": "delay set + noisy array CIR/PDP",
+      "track": "multimodal"
+    },
+    "evomdp_rank_frozen_transfer": {
+      "inputs": "delay set",
+      "track": "primary_transfer"
+    },
+    "extra_trees_delay_features": {
+      "inputs": "delay/gap/count features",
+      "track": "learned"
+    },
+    "graph_diffusion": {
+      "inputs": "delay set + map adjacency",
+      "track": "primary"
+    },
+    "lea4_diffassign_vts": {
+      "inputs": "delay set + survey-only differentiably refined VTs",
+      "track": "survey_geometry"
+    },
+    "lea4_mpurge_track_vts": {
+      "inputs": "delay set + survey-only fitted VTs",
+      "track": "survey_geometry"
+    },
+    "legacy_per_tx_fusion_totalP5_printed": {
+      "inputs": "delay set + observable physical-TX partition",
+      "track": "separate_diagnostic"
+    },
+    "majid_mca_eps1": {
+      "inputs": "delay set",
+      "track": "primary"
+    },
+    "majid_smart_lea1_joint_totalP5_printed": {
+      "inputs": "delay set + paper-known 20 anchors",
+      "track": "primary"
+    },
+    "majid_smart_lea4_joint_totalP5_printed": {
+      "inputs": "delay set + paper-known 20 anchors",
+      "track": "primary"
+    },
+    "pointnet_delay": {
+      "inputs": "delay set",
+      "track": "learned"
+    },
+    "pointnet_range_power_aoa": {
+      "inputs": "joint noisy range/power/AoA tokens",
+      "track": "learned_multimodal"
+    },
+    "query_reference_attention_delay": {
+      "inputs": "delay query/reference sets",
+      "track": "learned"
+    },
+    "query_reference_attention_multimodal": {
+      "inputs": "joint noisy query/reference tokens",
+      "track": "learned_multimodal"
+    },
+    "range_power_aoa_assignment": {
+      "inputs": "joint noisy range/power/AoA tokens",
+      "track": "multimodal"
+    },
+    "rrle_moe": {
+      "inputs": "delay features + four frozen expert outputs",
+      "track": "learned_hybrid"
+    },
+    "smart_lea4_fixed_height_totalP5_geometric": {
+      "inputs": "delay set + paper-known 3-D anchors + receiver height",
+      "track": "analytic_improvement"
+    },
+    "smart_lea4_joint_cited_halfwindow5_printed": {
+      "inputs": "delay set + paper-known 20 anchors",
+      "track": "ambiguity_check"
+    },
+    "smart_lea4_joint_totalP5_geometric_cross": {
+      "inputs": "delay set + paper-known 20 anchors",
+      "track": "ambiguity_check"
+    },
+    "subset_consensus": {
+      "inputs": "delay set",
+      "track": "primary"
+    },
+    "symmetric_chamfer_1nn": {
+      "inputs": "delay set",
+      "track": "primary"
+    }
+  },
+  "mode": "full",
+  "python": "3.11.9",
+  "query_points": 1000,
+  "schema": "corrected-smart-fair-suite-v2",
+  "seeds": [
+    29,
+    47,
+    71
+  ],
+  "spacings_m": [
+    0.25,
+    0.5,
+    1.5,
+    2.5
+  ],
+  "started_utc": "2026-08-07T11:28:04Z",
+  "torch": "2.5.1+cu121"
+}

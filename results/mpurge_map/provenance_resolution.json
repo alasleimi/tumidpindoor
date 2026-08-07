@@ -1,0 +1,17 @@
+{
+  "status": "RESOLVED_BY_DISCLOSURE_NO_RUN_OUTPUT_CHANGED",
+  "run_completed_before_shared_source_edit": true,
+  "run_manifest_expected_multimodal_receiver_sha256": "7e9909312d9f9330e5e3d37f7ab3962732b2500503e2c1113e09c3f1d18da8f6",
+  "post_run_event": "A concurrent task edited coherent_adp_distance after the MAP manifest was written, then restored its pre-edit semantics without restoring byte-identical formatting/source text.",
+  "current_semantically_restored_receiver_sha256": "10962bf2ab1edf3495879c2693f3e75ad1aeabf68c5af359d9f108645d3b5e67",
+  "result_integrity": {
+    "all_manifested_result_artifacts_match": true,
+    "all_checkpoints_match": true,
+    "map_suite_source_matches": true,
+    "legacy_common_source_matches": true,
+    "majdi_method_source_matches": true,
+    "only_shared_receiver_path_changed_after_completion": true
+  },
+  "decision": "Retain the immutable expected hash in run_manifest.json and disclose the later mutation. Do not rewrite it to imply that the current byte sequence generated the completed rows.",
+  "audit": "focused_result_audit.json"
+}
