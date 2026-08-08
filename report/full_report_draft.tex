@@ -884,7 +884,7 @@ did not show a great confirmed result.
 \toprule Evidence block & Status & Auditable scale & Release ruling\\\midrule
 MPUrge--MAP full & \good{PASS with disclosed post-run source mutation} & 40,000 primary rows; 33,600 learned seed rows; 16 conditions; 25 methods & Publish as replacement-scene evidence. All 34 focused checks and invariance/edge tests pass.\\
 SMART full & \good{FULL\_COMPLETE; integrity PASS} & 720,000 raw rows; 24 scenarios; 30 methods & Publish as replacement-scene evidence; retain legacy Tx-partition row as diagnostic.\\
-Original MPUrge smoke & \good{QUICK\_SMOKE\_COMPLETE} & 1 scene; 2 noise levels; 16 primary rows; all 12 stored hashes recomputed & Diagnostic triage only; no final rank claim or neural rejection.\\
+Original MPUrge smoke & \good{Quick smoke complete} & 1 scene; 2 noise levels; 16 primary rows; all 12 stored hashes recomputed & Diagnostic triage only; no final rank claim or neural rejection.\\
 Original MPUrge full & \caution{INCOMPLETE} & 7/24 checkpoint stages; no metrics/results/manifest & Do not publish a partial leaderboard; use the explicit input hook after an atomic resumable rerun.\\
 CNN legacy smoke & \caution{SUPERSEDED} & Old quick artifact & Do not quote; it predates leave-self and provenance fixes.\\
 CNN corrected full & \caution{PENDING} & Hook expects two rooms and provenance-separated rows & No reconstruction performance claim until raw rows, audit, and hashes exist.\\
@@ -896,8 +896,8 @@ Causal multilevel & \good{Integrity PASS; no confirmed gain} & 27 policy-budget 
 
 \subsection{Hash and provenance resolution}
 
-The MAP manifest preserves receiver SHA-256
-\texttt{7e9909312d9f9330\allowbreak{}e5e3d37f7ab39627\allowbreak{}32b2500503e2c111\allowbreak{}3e09c3f1d18da8f6};
+The MAP manifest preserves receiver SHA-256\\
+\texttt{7e990931\allowbreak{}2d9f9330\allowbreak{}e5e3d37f\allowbreak{}7ab39627\allowbreak{}32b25005\allowbreak{}03e2c111\allowbreak{}3e09c3f1\allowbreak{}d18da8f6};
 the SMART manifest preserves its imported receiver SHA-256 beginning
 \texttt{5a4867f3d1363c54}.  A concurrent task changed the shared receiver after
 those completed runs and restored its semantics without byte-identical text;
