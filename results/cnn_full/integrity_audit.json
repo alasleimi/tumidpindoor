@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "checks": {
+    "expected_row_count": true,
+    "unique_protocol_room_method_query_keys": true,
+    "all_numeric_outputs_finite": true,
+    "two_sided_alias_has_no_numeric_rows": true,
+    "row_map_information_matches_method_provenance": true,
+    "privileged_flag_scoped_to_oracle_bracket": true,
+    "fit_only_maps_retain_candidates": true,
+    "permutation_invariance": true,
+    "room_a_paper_condition_map_method_set": true,
+    "room_a_paper_condition_map_query_counts": true,
+    "room_a_environment_blind_map_method_set": true,
+    "room_a_environment_blind_map_query_counts": true,
+    "room_a_protocol_independent_method_set": true,
+    "room_a_protocol_independent_query_counts": true,
+    "room_b_paper_condition_map_method_set": true,
+    "room_b_paper_condition_map_query_counts": true,
+    "room_b_environment_blind_map_method_set": true,
+    "room_b_environment_blind_map_query_counts": true,
+    "room_b_protocol_independent_method_set": true,
+    "room_b_protocol_independent_query_counts": true,
+    "no_complete_prediction_vector_duplicated_across_protocols": true
+  },
+  "observed_rows": 115200,
+  "expected_rows": 115200,
+  "protocol_method_counts": {
+    "paper_condition_map": 11,
+    "environment_blind_map": 16,
+    "protocol_independent": 9
+  },
+  "unique_methods": 25,
+  "queries_per_room": 1600
+}

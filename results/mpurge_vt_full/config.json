@@ -1,0 +1,79 @@
+{
+  "schema": "corrected-original-mpurge-vt-suite-v2-frozen-receiver",
+  "phase": "full",
+  "arguments": {
+    "output_dir": "research\\four_paper_report\\corrected_mpurge_vt_full_v3",
+    "device": "cuda",
+    "require_cuda": true,
+    "scene_seeds": [
+      26080701,
+      26080702,
+      26080703,
+      26080704,
+      26080705,
+      26080706
+    ],
+    "noise_stds": [
+      0.0,
+      0.25,
+      1.0,
+      3.0
+    ],
+    "algorithm_seed": 20260807,
+    "survey_points": 36,
+    "query_points": 20,
+    "maximum_paths": 9,
+    "neighbourhood_size": 7,
+    "beta_step": 0.1,
+    "cycle_draws": 700,
+    "kmax": 7,
+    "diffassign_steps": 90,
+    "diffassign_restarts": 2,
+    "ba_steps": 60,
+    "neural_epochs": 120,
+    "grid_side": 31,
+    "quick": false,
+    "self_test_only": false,
+    "resume": true
+  },
+  "run_fingerprint": "5bea36be4c5a3801cca70544ec2125c8f0586a174a37d0b0efbe7a55ae6c2191",
+  "paper_contract": {
+    "total_window_P": 5,
+    "half_window_p": 2,
+    "alpha": 0.5,
+    "conflict_priority": "composite_dissimilarity",
+    "cross_modes": [
+      "printed",
+      "order"
+    ],
+    "grouping_interpretations": [
+      "star",
+      "components"
+    ],
+    "dynamic_beta_until_empty": true,
+    "max_cardinality_gated_evaluation": true
+  },
+  "information_barrier": {
+    "same_acquisition_multimodal_features_allowed": true,
+    "extra_dense_sampling": false,
+    "extra_forward_simulator_training_examples": false,
+    "VT_or_ray_ID_input": false,
+    "query_truth_input": false,
+    "true_cardinality_primary": false
+  },
+  "receiver_provenance": {
+    "kind": "immutable_vendored_snapshot",
+    "path": "C:\\Users\\Ala\\Desktop\\IDP PROJECT\\experiments\\four_paper_report\\mpurge_vt_receiver_snapshot_20260807.py",
+    "sha256": "0ef4c590832a4d7c8bfac784d7b4c8e87e266bea1bb580ed805aa24d399999a4",
+    "supersedes_mutated_shared_receiver": true
+  },
+  "executed_source_copies": {
+    "C:\\Users\\Ala\\Desktop\\IDP PROJECT\\experiments\\four_paper_report\\corrected_mpurge_vt_suite.py": "C:\\Users\\Ala\\Desktop\\IDP PROJECT\\research\\four_paper_report\\corrected_mpurge_vt_full_v3\\executed_sources\\corrected_mpurge_vt_suite.py",
+    "C:\\Users\\Ala\\Desktop\\IDP PROJECT\\experiments\\four_paper_report\\mpurge_vt_receiver_snapshot_20260807.py": "C:\\Users\\Ala\\Desktop\\IDP PROJECT\\research\\four_paper_report\\corrected_mpurge_vt_full_v3\\executed_sources\\mpurge_vt_receiver_snapshot_20260807.py"
+  },
+  "source_hashes": {
+    "C:\\Users\\Ala\\Desktop\\IDP PROJECT\\experiments\\four_paper_report\\corrected_mpurge_vt_suite.py": "4f1562bcfb3c72a4c92101367d70252ef30ecfacf4d4c33870b2e914596984ce",
+    "C:\\Users\\Ala\\Desktop\\IDP PROJECT\\experiments\\four_paper_report\\mpurge_vt_receiver_snapshot_20260807.py": "0ef4c590832a4d7c8bfac784d7b4c8e87e266bea1bb580ed805aa24d399999a4"
+  },
+  "created_utc": "2026-08-08T06:17:26Z"
+}

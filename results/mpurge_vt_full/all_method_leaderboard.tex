@@ -1,0 +1,31 @@
+\begin{table*}[t]
+\centering
+\small
+\caption{Corrected MPUrge VT-construction benchmark. Scene-clustered macro means; the oracle row is diagnostic and excluded from primary claims.}
+\label{tab:corrected-mpurge-vt-full}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Method & $\beta$ & P & R & F1 & Chamfer (m) & Hausdorff (m) & Loc. (m) \\
+\midrule
+diffassign\_multimodal\_oracle\_cardinality\_ablation [oracle] & -- & 0.5750 & 0.5750 & 0.5750 & 1.0766 & 4.8123 & 1.5183 \\
+two\_sided\_vt\_registration & -- & 0.5745 & 0.5700 & 0.5717 & 1.0275 & 4.9653 & 1.6455 \\
+bernoulli\_rfs\_multimodal & -- & 0.5034 & 0.6328 & 0.5562 & 0.6528 & 2.8185 & 1.4383 \\
+beta\_marginal\_survival\_multimodal & -- & 0.4709 & 0.6446 & 0.5395 & 0.7766 & 3.1932 & 1.4106 \\
+diffassign\_bic\_multimodal & -- & 0.4564 & 0.5948 & 0.5156 & 1.0577 & 5.7510 & 1.5711 \\
+multipath\_bundle\_adjustment\_noncheating & -- & 0.5917 & 0.4376 & 0.5003 & 2.6358 & 11.8005 & 2.0033 \\
+aoa\_power\_inverse\_consensus & -- & 0.3218 & 0.6556 & 0.4217 & 0.8241 & 5.1222 & 1.6250 \\
+diffassign\_bic\_delay & -- & 0.3100 & 0.4001 & 0.3485 & 3.5305 & 11.3295 & 1.7616 \\
+corrected\_mpurge\_order\_components & 1.00 & 0.1263 & 0.1584 & 0.1313 & 6.1565 & 23.5267 & 3.2410 \\
+corrected\_pba\_order\_components & 1.00 & 0.1270 & 0.1586 & 0.1303 & 6.3960 & 23.9232 & 3.3268 \\
+corrected\_pba\_printed\_components & 1.00 & 0.0993 & 0.1540 & 0.1158 & 5.9749 & 23.6776 & 3.3874 \\
+selfsup\_deepsets\_multimodal & -- & 0.1294 & 0.1035 & 0.1140 & 3.6951 & 16.4283 & 2.0763 \\
+corrected\_mpurge\_printed\_components & 1.00 & 0.0939 & 0.1516 & 0.1103 & 6.1957 & 24.0420 & 3.4667 \\
+selfsup\_attention\_multimodal & -- & 0.0829 & 0.0729 & 0.0773 & 2.7805 & 12.1982 & 1.9563 \\
+corrected\_mpurge\_order\_star & 1.00 & 0.0248 & 0.6149 & 0.0475 & 2.8050 & 19.0621 & 1.8173 \\
+corrected\_pba\_order\_star & 1.00 & 0.0246 & 0.6129 & 0.0471 & 2.8160 & 19.1626 & 1.8044 \\
+cycle\_consistent\_delay & -- & 0.0171 & 0.5141 & 0.0329 & 3.9508 & 22.9418 & 2.3876 \\
+corrected\_mpurge\_printed\_star & 1.00 & 0.0165 & 0.6274 & 0.0321 & 3.1931 & 21.4290 & 1.9752 \\
+corrected\_pba\_printed\_star & 1.00 & 0.0159 & 0.6271 & 0.0310 & 3.2148 & 21.4382 & 1.9251 \\
+\bottomrule
+\end{tabular}
+\end{table*}

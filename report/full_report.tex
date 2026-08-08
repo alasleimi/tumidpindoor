@@ -1,0 +1,994 @@
+\documentclass[10pt]{article}
+\usepackage[margin=17mm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,tabularx,array,longtable}
+\usepackage{enumitem,microtype}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{hyperref,pdflscape}
+\usepackage{fancyhdr,lastpage}
+\hypersetup{hidelinks,pdfauthor={IDP reproducibility study},pdftitle={Four-paper indoor-localization reconstruction report}}
+\setlist{nosep,leftmargin=*}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.42em}
+\setlength{\emergencystretch}{3em}
+\setcounter{tocdepth}{2}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\code}[1]{\nolinkurl{#1}}
+\newcommand{\R}{\mathbb R}
+\newcommand{\m}{\,\mathrm m}
+\newcommand{\degc}{^{\circ}}
+\newcommand{\good}[1]{\textcolor{ForestGreen}{#1}}
+\newcommand{\caution}[1]{\textcolor{BrickRed}{#1}}
+\newcommand{\pendinghook}[1]{%
+  \begin{center}\fcolorbox{BrickRed}{BrickRed!5}{\parbox{0.92\linewidth}{%
+  \textbf{PENDING FULL-RUN INPUT HOOK.} #1}}\end{center}}
+\newcommand{\statusbox}[1]{%
+  \begin{center}\fcolorbox{ForestGreen}{ForestGreen!5}{\parbox{0.92\linewidth}{#1}}\end{center}}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Four-paper fair reconstruction}
+\rhead{8 August 2026}
+\cfoot{\thepage/\pageref{LastPage}}
+
+\title{Four Majid Indoor-Localization Protocols:\\A Fair, Executable Reconstruction and Method Benchmark}
+\author{Integrated technical report}
+\date{8 August 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This report integrates four paper-specific tasks rather than pooling unlike
+experiments: MPUrge--MAP receiver localization, original MPUrge virtual-
+transmitter (VT) construction, SMART--LEA refinement, and the two-room CNN
+fingerprinting task.  Every numerical result is labelled either a completed
+replacement-scene benchmark, a diagnostic smoke result, or published context.
+Fairness is the paper-specific number and location of
+physical acquisitions, not a delay-only rule: noisy power, AoA, and complex
+CIR are legal when obtained from those same acquisitions.  Hidden ray/VT IDs,
+query truth, clean side channels, and extra spatial supervision are forbidden.
+The report gives a beginner-reproducible recipe for every method appearing in
+a table, complete audited leaderboards for all four reconstructed protocols,
+and a release/audit ledger.
+\end{abstract}
+
+\statusbox{\textbf{Release state.} All four replacement-scene full runs are
+complete and independently audited.  MPUrge--MAP contains 40,000 primary rows;
+SMART contains 720,000 rows; original MPUrge VT construction contains 24
+scene/noise blocks and 123,760 stored query predictions; and the corrected CNN
+run contains 115,200 rows across two rooms.  Earlier smoke and interrupted-run
+artifacts remain explicitly diagnostic or superseded and do not supply a full
+leaderboard value.}
+
+\tableofcontents
+\clearpage
+
+\section{What may and may not be claimed}
+
+The four source papers use simulator projects, scene files, and random seeds
+that are not available in this workspace.  Consequently, a number produced
+here is an \emph{executable replacement-scene reconstruction}; it is not an
+exact reproduction of the paper's number and not an external state-of-the-art
+claim.  Published values appear only as context and are never pooled with
+reconstruction rows.
+
+The paper/reconstruction boundary is operational:
+\begin{enumerate}
+\item A printed paper fact is stated as such and tied to its protocol.
+\item A missing choice---geometry, AP coordinate, corruption extractor,
+threshold, seed, or ambiguity---is disclosed as a reconstruction choice.
+\item A protected query may score a frozen method but may not select a model,
+threshold, sensor channel, fallback, or ablation.
+\item A method may use every noisy physical observable at the same permitted
+acquisitions.  It may not add labelled positions or read latent simulator
+identities, clean geometry, the true obstacle label, or query coordinates.
+\end{enumerate}
+
+\subsection{The four distinct protocols}
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}p{0.12\linewidth}p{0.22\linewidth}YYp{0.13\linewidth}@{}}
+\toprule
+Protocol & Output & Paper-side budget & Replacement implementation & Evidence state\\
+\midrule
+MPUrge--MAP & One static query coordinate & Uniform $0.5\m$ RP map; 100 non-RP queries; independent range AWGN and obstruction tests & $4\times5\times3\m$ image-source room; 80 cell-centred RPs; 100 locked off-grid queries; 16 conditions & \good{Full, audited}\\
+Original MPUrge & Unordered VT coordinate set per transmitter & Nearby surveyed RPs; four physical transmitters and 16 VTs; several noise realizations; exact scene/layout unavailable & Six disclosed $20\times20\m$ variable-visibility scenes; four noise levels; same sparse survey/query acquisition rule; corrected $P=5$ and matching brackets & \good{Full, audited}\\
+SMART--LEA & One static coordinate refined from an initial pose and VT/Tx anchors & Irregular floorplan; four physical plus 16 virtual transmitters; spacings $0.25,0.5,1.5,2.5\m$ & $25\times25\m$ rectangle; four Tx and four wall images/Tx; 1,000 locked queries; 3 seeds; clean/noisy & \good{Full, audited}\\
+CNN & One static coordinate or RP posterior & Per room: 20 RPs, 60 AP positions, 7 configurations ($8{,}400$ fingerprints); 1,600 off-grid queries & Same counts and room sizes; image-source/noisy-array receiver; corrected grouped split, independently corrupted fit repeats, and strict validation leave-self logic & \good{Full, audited}\\
+\bottomrule
+\end{tabularx}
+\caption{The tasks have different outputs and supervision budgets; their errors are not one common leaderboard.}
+\end{table}
+
+\subsection{Shared acquisition and metric contract}
+
+Latent paths first synthesize a noisy array impulse response,
+\begin{equation}
+ y_a[n]=\sum_{\ell}\alpha_\ell
+ e^{-j(2\pi/\lambda)\mathbf p_a^\top\mathbf u_\ell}
+ \mathbf 1[n=n_\ell]+w_a[n],\qquad
+ w_a[n]\sim\mathcal{CN}(0,\sigma^2).
+\end{equation}
+Peak extraction yields a token
+$z_\ell=(\widehat r_\ell,\widehat P_\ell,\widehat{\mathbf u}_\ell)$
+and leaves the noisy complex CIR available.  Missing detection removes the
+whole token, so delay, power, AoA, dropout, and CIR noise are coupled.  Survey
+and query acquisitions use independent draws.  Latent source/ray identity and
+reflection order are never estimator features.
+
+For a query truth $\mathbf x_b$ and prediction $\widehat{\mathbf x}_b$,
+\begin{equation}
+ e_b=\|\widehat{\mathbf x}_b-\mathbf x_b\|_2,\quad
+ \overline e=B^{-1}\sum_b e_b,\quad
+ \operatorname{RMSE}=\sqrt{B^{-1}\sum_b e_b^2}.
+\end{equation}
+Median and 90th percentile are also retained.  Pairwise uncertainty uses the
+same physical blocks for both methods: with
+$\Delta_b=e_b^{\rm baseline}-e_b^{\rm candidate}$, a positive
+$\overline\Delta$ means the candidate is better.  Blocks, not augmentation
+duplicates, are resampled.
+
+\section{Protocol I: corrected MPUrge--MAP}
+
+\subsection{Frozen reconstruction}
+
+Every method receives the same 80 survey locations and the same 100 locked
+off-grid query locations.  The 16 cells are ideal, nine range-AWGN levels
+$\sigma_r\in\{0.01,0.02,0.05,0.1,0.2,0.5,1,2,5\}\m$, five individual
+objects, and all objects.  Each cell has one materialised survey tensor and an
+independently corrupted query tensor shared verbatim across methods.  Learned
+augmentation corrupts the 80 stored fingerprints only (1,280 rows; zero new
+simulator coordinates).  Selection uses 64 whole RP groups for fit and 16 for
+validation.  Seven neural methods use seeds 211, 337, and 461.  The 100 query
+labels are opened only for final scoring.
+
+The observable channels are delay, noisy received power, noisy receive AoA,
+and noisy 8-element CIR.  Zero-range-noise cells use the frozen high-SNR
+receiver setting (80 dB); range-AWGN cells use 25 dB for other modalities.
+That sensitivity choice is part of the replacement protocol and is a reason
+not to extrapolate its multimodal margin directly to hardware.
+
+\subsection{Common equations}
+
+For sorted query set $Q=\{q_a\}$ and RP set $R_i=\{r_{ib}\}$, corrected
+MPUrge uses
+\begin{align}
+ \delta_{ab}&=\alpha|q_a-r_{ib}|+(1-\alpha)d_{\rm pat}(a,b),\\
+ d_{\rm pat}(a,b)&=\binom{2p+1}{2}^{-1}
+ \sum_{u<v}\left|,|W_a(u)-W_a(v)|-|W_{ib}(u)-W_{ib}(v)|\,\right|,\\
+ C_i&=\frac{|\mathcal M_i|}{\max(|Q|,|R_i|,1)},\qquad
+ s_i=\frac{1}{C_i|\mathcal M_i|}\sum_{(a,b)\in\mathcal M_i}\delta_{ab}.
+\end{align}
+Mutual-nearest matches are processed in increasing composite $\delta$, and a
+new match may not reverse the delay order of an accepted match.  The baseline
+uses $p=6$, $\alpha=0.7$, normalized pattern distance, and inverse-score
+interpolation over the three best finite RPs:
+\begin{equation}
+ w_i=\frac{s_i^{-1}}{\sum_{j\in K}s_j^{-1}},\qquad
+ \widehat{\mathbf x}=\sum_{i\in K}w_i\mathbf x_i.
+\end{equation}
+No finite evidence returns the survey-coordinate centroid for every method.
+
+Three reusable decoders are
+\begin{align}
+ D_i^{\rm Ch}&=\tfrac12\left[|Q|^{-1}\sum_{q\in Q}\min_{r\in R_i}|q-r|
+ +|R_i|^{-1}\sum_{r\in R_i}\min_{q\in Q}|r-q|\right],\\
+ w_i^{(T)}&=\frac{\exp[-(s_i-s_{(1)})/T]}
+ {\sum_{j\in K}\exp[-(s_j-s_{(1)})/T]},\\
+ p^{(t+1)}&=(1-\gamma)p^{(t)}+\gamma G^\top p^{(t)},\qquad
+ \widehat{\mathbf x}=\sum_i p_i^{(L)}\mathbf x_i,
+\end{align}
+where $G$ is the normalized six-neighbour RP graph.  The frozen EvoMDP row
+uses $E_i=\sum_{k=1}^8w_k f_k(Q,R_i)/a_k$ for eight delay-set distances:
+Chamfer, quantile Wasserstein, gap Wasserstein, log-cardinality ratio, partial
+assignment, local pattern, MCA complement, and moment difference.
+
+For multimodal matching,
+\begin{align}
+ c_{ab}&=|r_a-r_b|+\lambda_\theta\arccos(\mathbf u_a^\top\mathbf u_b)
+ +\lambda_P|P_a-P_b|/10,\\
+ z_{ab}&=c_{ab}/(1+c_{ab}),\qquad S(z)=(1-z)^2(1+2z).
+\end{align}
+The Beta-shaped row symmetrically averages nearest pair costs weighted by
+$S(z)$ and adds a normalized cardinality mismatch.  ``Beta-shaped'' is the
+correct name: the implemented polynomial is not an exact Beta$(2,5)$ survival
+integral.  The coherent row uses the receiver's active-tap array projection
+distance $D_i^{\rm ADP}$ plus $\lambda_dD_i^{\rm Ch}$.  Survival--CIR combines
+$D_i^{\rm surv}=aD_i^{\rm Beta}+bD_i^{\rm ADP+ToA}+cD_i^{\rm Ch}$; residual
+graph diffuses this score over the RP graph.
+
+PointNet/Deep-Sets encode tokens using
+\begin{equation}
+ h_\ell=\phi(z_\ell),\qquad e(Z)=
+ [\operatorname{mean}_\ell h_\ell,\operatorname{max}_\ell h_\ell,
+ \log(1+|Z|)].
+\end{equation}
+CAEZ-style classification uses $p_i=\operatorname{softmax}(g)_i$ and
+$\widehat{\mathbf x}=\sum_i p_i\mathbf x_i$.  A residual head uses
+$\widehat{\mathbf x}=\operatorname{clip}\{\mathbf a+\rho\tanh f_\theta(e,\mathbf a,d)\}$.
+RRLE predicts each frozen expert's error $\widehat e_k$ and mixes its four
+coordinates with $\pi_k\propto e^{-\widehat e_k/T}$.  Genuine cross-attention
+uses
+\begin{equation}
+ \operatorname{Attn}(Q,K,V)=\operatorname{softmax}
+ \left(QK^\top/\sqrt d+M\right)V,
+\end{equation}
+with padding mask $M$ and no path-order positional encoding.  The self-attention
+candidate model applies the same masked operation within each set, pools, then
+scores candidates equivariantly.  Shuffle, padding, and candidate-permutation
+tests passed.
+
+\subsection{Recipe index for all 25 rows}
+
+\footnotesize
+\begin{longtable}{@{}p{0.055\linewidth}p{0.34\linewidth}p{0.55\linewidth}@{}}
+\toprule
+ID & Artifact key & Beginner-reproducible recipe\\
+\midrule
+\endfirsthead
+\toprule ID & Artifact key & Beginner-reproducible recipe\\\midrule
+\endhead
+M1 & \code{majdi_mpurge_map_corrected_prose} & Compute corrected $s_i$ above; inverse-weight the best three RPs.\\
+M2 & \code{majdi_mca_eps1.6_k1} & For each query delay, find its nearest RP delay; sum $(1.6-d)^2$ only when $d<1.6\m$; return the highest-scoring RP.\\
+M3 & \code{majdi_original_mpurge_P5_corrected} & Repeat M1 with total $P=5$ (half-window 2), $\alpha=.5$, unnormalized pattern, no MAP coverage penalty.\\
+M4 & \code{ablation_A_chamfer_inverse_top3} & Replace only M1's score with exact symmetric Chamfer; retain inverse top-three and the common fallback.\\
+M5 & \code{ablation_B_temperature_softmax_only} & Retain M1 score; replace only inverse weights by development-selected temperature weights $w_i^{(T)}$.\\
+M6 & \code{ablation_C_path_count_empty_only} & Retain M1 and multiply finite scores by $1+\eta||Q|-|R_i||/\max(|Q|,|R_i|)$; give a finite disclosed cost to empty references.\\
+M7 & \code{ablation_D_chamfer_temperature_pathcount} & Combine M4's Chamfer, M5's softmax, and M6's count/empty rule.\\
+M8 & \code{subset_consensus_chamfer} & Localize the full set and delete-one subsets (or all size-three subsets for at most six paths); keep hypotheses near their coordinate-wise median and average.\\
+M9 & \code{graph_diffusion_corrected} & Convert M1 scores to a temperature posterior, run $L$ steps of six-neighbour diffusion $G$, and take its coordinate mean.\\
+M10 & \code{frozen_evomdp_rank} & Scale and mix the eight frozen delay distances $f_k$, temperature-decode the best frozen $K$ RPs; do not refit the genome.\\
+M11 & \code{beta_survival_multimodal} & Form range/power/AoA pair costs $c_{ab}$, apply $S(z)$, symmetrize nearest supported costs, add path-count mismatch, inverse-decode three RPs.\\
+M12 & \code{coherent_adp_toa} & Add coherent active-tap CIR/array distance to weighted delay Chamfer; inverse-decode the best three.\\
+M13 & \code{survival_cir_toa} & Development-select the nonnegative mixture of M11, M12, and Chamfer, then inverse-decode.\\
+M14 & \code{assigned_vt_consensus_aoa} & Cluster survey endpoints $\mathbf v=\mathbf x_i+r\mathbf u$ without IDs; query proposals are $\mathbf v-r\mathbf u$; return the strongest multi-path DBSCAN consensus.\\
+M15 & \code{residual_graph_multimodal} & Apply M9's graph diffusion to M13's multimodal score instead of M1.\\
+M16 & \code{delay_feature_extratrees} & ExtraTrees on 17 delay quantiles, 7 gap quantiles, count, mean, standard deviation, minimum, and maximum; fit only stored calibration variants.\\
+M17 & \code{multimodal_feature_extratrees} & Add 7 power quantiles, weighted AoA mean/spread, and 7 normalized CIR summaries to M16; refit the tree ensemble.\\
+M18 & \code{rrle_moe} & Obtain M1, M4, M10, and M9 coordinates; predict their errors from delay/diagnostic/disagreement features; softmax-mix the experts.\\
+M19 & \code{pointnet_delay_direct} & Encode unordered scalar-delay tokens by shared MLP plus masked mean/max; directly regress normalized $(x,y)$.\\
+M20 & \code{pointnet_multimodal_direct} & Use M19 with token $[r,P,u_x,u_y,u_z]$.\\
+M21 & \code{caez_grid_probability_delay} & Encode the delay set, output 80 RP logits, train by cross-entropy, and return the posterior coordinate mean.\\
+M22 & \code{residual_to_analytic_delay} & Feed delay-set encoding, M1 pose, and M1 diagnostics to a bounded residual head.\\
+M23 & \code{pointnet_analytic_reranker_delay} & Shortlist with M1; separately PointNet-encode query/reference delay sets plus coverage/score/RP coordinate; softmax-average candidates.\\
+M24 & \code{cross_attention_multimodal} & Let each query path attend to each candidate's reference paths using noisy range/power/AoA; masked-pool and score candidates.\\
+M25 & \code{candidate_self_attention_multimodal} & Self-attend within query/reference sets, pool invariantly, then apply a permutation-equivariant candidate attention/reranking head.\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\subsection{Complete pooled leaderboard}
+
+\scriptsize
+\begin{longtable}{@{}r p{0.43\linewidth}rrrr@{}}
+\toprule Rank & Method key & Mean & RMSE & Median & P90\\\midrule
+\endfirsthead
+\toprule Rank & Method key & Mean & RMSE & Median & P90\\\midrule
+\endhead
+1 & \code{beta_survival_multimodal} & 0.2528 & 0.3731 & 0.1627 & 0.5544\\
+2 & \code{survival_cir_toa} & 0.2601 & 0.3789 & 0.1716 & 0.5649\\
+3 & \code{residual_graph_multimodal} & 0.2745 & 0.4061 & 0.1940 & 0.5036\\
+4 & \code{candidate_self_attention_multimodal} & 0.3349 & 0.4837 & 0.2156 & 0.6983\\
+5 & \code{cross_attention_multimodal} & 0.3434 & 0.4868 & 0.2406 & 0.6836\\
+6 & \code{assigned_vt_consensus_aoa} & 0.3463 & 0.8276 & 0.0238 & 1.3415\\
+7 & \code{pointnet_multimodal_direct} & 0.4373 & 0.5317 & 0.3697 & 0.8041\\
+8 & \code{multimodal_feature_extratrees} & 0.4480 & 0.5359 & 0.3866 & 0.8158\\
+9 & \code{coherent_adp_toa} & 0.7746 & 0.9484 & 0.6739 & 1.5223\\
+10 & \code{rrle_moe} & 1.0445 & 1.2987 & 0.8504 & 2.1244\\
+11 & \code{ablation_C_path_count_empty_only} & 1.0589 & 1.3381 & 0.8213 & 2.2701\\
+12 & \code{majdi_mpurge_map_corrected_prose} & 1.0638 & 1.3429 & 0.8075 & 2.2723\\
+13 & \code{ablation_B_temperature_softmax_only} & 1.0721 & 1.3488 & 0.8269 & 2.2389\\
+14 & \code{subset_consensus_chamfer} & 1.0752 & 1.3369 & 0.8409 & 2.2020\\
+15 & \code{pointnet_analytic_reranker_delay} & 1.0961 & 1.2809 & 0.9760 & 2.0162\\
+16 & \code{ablation_A_chamfer_inverse_top3} & 1.1077 & 1.3979 & 0.8655 & 2.3055\\
+17 & \code{graph_diffusion_corrected} & 1.1084 & 1.3510 & 0.9460 & 2.1038\\
+18 & \code{residual_to_analytic_delay} & 1.1252 & 1.3333 & 0.9803 & 2.0701\\
+19 & \code{ablation_D_chamfer_temperature_pathcount} & 1.1345 & 1.4118 & 0.9387 & 2.2924\\
+20 & \code{frozen_evomdp_rank} & 1.1353 & 1.4131 & 0.9120 & 2.2993\\
+21 & \code{delay_feature_extratrees} & 1.2039 & 1.4055 & 1.0774 & 2.2369\\
+22 & \code{majdi_mca_eps1.6_k1} & 1.3143 & 1.8017 & 0.8718 & 3.1994\\
+23 & \code{majdi_original_mpurge_P5_corrected} & 1.3160 & 1.5544 & 1.2030 & 2.4810\\
+24 & \code{caez_grid_probability_delay} & 1.3387 & 1.5261 & 1.1798 & 2.3893\\
+25 & \code{pointnet_delay_direct} & 1.3509 & 1.5156 & 1.2350 & 2.2620\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+All values are metres over 1,600 identical condition/query blocks.  The best
+three pooled methods are feature-rich; Beta-survival reduces mean error versus
+corrected Majid by $0.8110\m$, query-block bootstrap 95\% CI
+$[0.7224,0.9033]\m$.  Self-attention reduces it by $0.7289\m$, independently
+audited CI $[0.6479,0.8180]\m$; cross-attention reduces it by $0.7204\m$, CI
+$[0.6415,0.8052]\m$.  Assigned-VT's $2.38$ cm median but $1.34\m$ P90 reveals
+rare association failures.
+
+Pure components do not establish a delay-only analytic win: A (Chamfer only)
+has mean $1.1077\m$, reduction $-0.0440\m$ and CI
+$[-0.1088,0.0201]\m$; B (softmax only) $1.0721\m$, reduction
+$-0.0084\m$ and CI $[-0.0149,-0.0016]\m$; C (count/empty only)
+$1.0589\m$, reduction $0.0049\m$ and CI $[-0.0036,0.0133]\m$; D (all three)
+$1.1345\m$, reduction $-0.0708\m$ and CI $[-0.1373,-0.0044]\m$.
+Multimodal PointNet beats delay PointNet by $0.9136\m$ (CI
+$[0.7931,1.0371]\m$), and multimodal ExtraTrees beats delay ExtraTrees by
+$0.7559\m$ (CI $[0.6433,0.8742]\m$).  The large gain is therefore mainly
+sensor-enabled; the attention rows show viability, not architecture-only
+causality.
+
+\section{Protocol II: original MPUrge VT construction}
+
+\subsection{Corrected task and evidence boundary}
+
+This protocol estimates an \emph{unordered set of VT coordinates}, not a
+receiver coordinate.  Transmitter identity is observable because elementary
+transmitters use separable waveform channels; it is retained throughout
+matching, grouping, support counting, and evaluation.  True VT coordinates,
+cardinality, ray identity, and query truth are never primary-method inputs.
+The paper's total window $P=5$ is implemented as half-width $p=2$.  Current
+conflicts are resolved in increasing composite dissimilarity, and both the
+literal printed crossing test and geometric order-reversal test are recorded.
+Both overlapping-star and conflict-resolved connected-component grouping are
+bracketed.  Beta support is swept until the retained set is empty.
+
+The completed full design contains 24 independent scene/noise blocks: six scene
+seeds times $\sigma_r\in\{0,0.25,1,3\}\m$, 36 survey positions, 20 held-out
+queries, 90 differentiable-assignment steps with two restarts, 120 epochs for
+each self-supervised set model, and a $31\times31$ downstream localization
+grid.  All 24 blocks completed atomically.  The independent audit verified
+6,188 metric rows, 123,760 query predictions, the raw candidate/association
+evidence, 48 checkpoints, and all 86 manifest entries.  The earlier interrupted
+7/24-block attempt is retained only as non-result history.
+
+The completed diagnostic smoke used one scene, $\sigma_r\in\{0,0.25\}\m$,
+20 survey positions, six queries, eight neural epochs, 12 assignment steps,
+and a $15\times15$ grid.  Its one-scene intervals are necessarily degenerate.
+
+\subsection{Construction and scoring equations}
+
+For nearby survey anchors $\mathbf x_i$, match unordered indirect ranges with
+the corrected MPUrge dissimilarity from Protocol I (or the PBA L2 size-
+unification control).  A conflict-compatible group $\mathcal G$ is converted
+to a VT by robust range trilateration,
+\begin{equation}
+ \widehat{\mathbf v}_{\mathcal G}=arg\min_{\mathbf v\in\R^2}
+ \sum_{(i,a)\in\mathcal G}
+ \left(\|\mathbf v-\mathbf x_i\|_2-r_{ia}\right)^2.
+\end{equation}
+For a candidate $\mathbf v$, support is the number of distinct anchors whose
+measured range agrees within the frozen gate.  With mean support $\bar s$, the
+descriptive sweep retains $\{\mathbf v:s(\mathbf v)\ge\beta\bar s\}$ and
+increases $\beta$ until this set is empty.
+
+Multimodal inverse proposals are
+\begin{equation}
+ \mathbf v_{ia}=\mathbf x_i+r_{ia}\mathbf u_{ia}.
+\end{equation}
+Complete-link clusters with at least three anchors are power-weighted.  The
+survival version keeps a cluster only when
+$\Pr[p>0.15\mid m,n]=1-F_{\mathrm{Beta}(1+m,1+n-m)}(0.15)\ge0.90$.
+The Bernoulli/RFS tracker updates a matched track existence by
+$q\leftarrow q+0.35(1-q)$ and a missed track by $q\leftarrow0.94q$; it emits
+tracks with $q\ge0.55$ and support from at least three anchors.
+
+Unknown-cardinality differentiable assignment tests candidate counts, uses a
+soft symmetric set loss
+\begin{equation}
+ L_K=\frac1N\sum_i\left[
+ \frac1{|R_i|}\sum_{r\in R_i}\operatorname{smin}_{k,\tau}|r-d_{ik}|+
+ \frac1K\sum_k\operatorname{smin}_{r\in R_i,\tau}|d_{ik}-r|\right]
+ +\operatorname{BIC}(K),
+\end{equation}
+where $d_{ik}=\|\mathbf x_i-\mathbf v_k\|_2$ and
+$\operatorname{smin}_{\tau}(a)=-\tau\log\sum_j e^{-a_j/\tau}$.  DeepSets and
+self-attention instead predict a variable-existence set and minimize only
+range/AoA reconstruction on the allowed survey; no VT labels are used.
+
+Evaluation first maximizes gated bipartite match cardinality and only then
+minimizes matched distance.  If TP, FP, and FN are the resulting counts,
+\begin{equation}
+ \mathrm{precision}=\frac{TP}{TP+FP},\quad
+ \mathrm{recall}=\frac{TP}{TP+FN},\quad
+ F_1=\frac{2TP}{2TP+FP+FN}.
+\end{equation}
+Symmetric Chamfer, Hausdorff, and downstream grid-localization error prevent a
+high F1 from hiding poor coordinates or an unusable VT set.
+
+\subsection{Recipe index for every diagnostic row}
+
+\footnotesize
+\begin{longtable}{@{}p{0.055\linewidth}p{0.39\linewidth}p{0.50\linewidth}@{}}
+\toprule ID & Artifact key & Reproduction recipe\\\midrule
+\endfirsthead\toprule ID & Artifact key & Reproduction recipe\\\midrule\endhead
+V1 & \code{bernoulli_rfs_multimodal} & Process survey anchors sequentially; form range/AoA proposals, gate to existing tracks, update coordinate/existence, decay missed tracks, retain $q\ge.55$ with three-anchor support.\\
+V2 & \code{beta_marginal_survival_multimodal} & Cluster range/AoA proposals as above; integrate the observed support under the Beta posterior and retain survival probability at least .90.\\
+V3 & \code{aoa_power_inverse_consensus} & Complete-link cluster $\mathbf x_i+r\mathbf u$ proposals and power-weight each cluster; require at least three distinct anchors.\\
+V4 & \code{corrected_pba_order_components} & L2 size unification, geometric crossing, connected-component groups, trilateration, dynamic beta.\\
+V5 & \code{corrected_mpurge_order_components} & L1 MPUrge size unification, geometric crossing, connected components, trilateration, dynamic beta.\\
+V6 & \code{cycle_consistent_delay} & Repeatedly sample three anchors/paths, trilaterate, require range support on other anchors, complete-link cluster accepted hypotheses.\\
+V7 & \code{corrected_pba_printed_components} & V4 with literal printed crossing instead of geometric order crossing.\\
+V8 & \code{corrected_mpurge_printed_components} & V5 with literal printed crossing.\\
+V9 & \code{corrected_mpurge_order_star} & V5 with overlapping one-hop star grouping instead of connected components.\\
+V10 & \code{corrected_pba_order_star} & V4 with overlapping star grouping.\\
+V11 & \code{corrected_pba_printed_star} & PBA, printed crossing, star grouping.\\
+V12 & \code{corrected_mpurge_printed_star} & MPUrge, printed crossing, star grouping.\\
+V13 & \code{diffassign_bic_multimodal} & Optimize $L_K$ over candidate $K$, include noisy AoA reconstruction, choose $K$ by survey-only BIC.\\
+V14 & \code{selfsup_deepsets_multimodal} & Shared token MLP, masked mean/max pooling, variable-existence VT decoder; fit survey range/AoA reconstruction only.\\
+V15 & \code{selfsup_attention_multimodal} & Replace V14's token interaction by masked self-attention without positional encoding; keep the same self-supervised loss.\\
+V16 & \code{diffassign_bic_delay} & V13 using surveyed delays and coordinates only.\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\subsection{Complete smoke leaderboard: diagnostic, not final}
+
+\scriptsize
+\begin{longtable}{@{}r p{0.39\linewidth}rrrrrr@{}}
+\toprule Rank & Method & $F_1$ & Precision & Recall & Chamfer & Hausdorff & Loc. mean\\\midrule
+\endfirsthead\toprule Rank & Method & $F_1$ & Precision & Recall & Chamfer & Hausdorff & Loc. mean\\\midrule\endhead
+1 & \code{bernoulli_rfs_multimodal} & .9554 & .9150 & 1.0000 & .0559 & .1986 & .2864\\
+2 & \code{beta_marginal_survival_multimodal} & .8515 & .7521 & 1.0000 & .0807 & .1882 & .2853\\
+3 & \code{aoa_power_inverse_consensus} & .7729 & .6390 & 1.0000 & .0948 & .2874 & .3044\\
+4 & \code{corrected_pba_order_components} & .2572 & .2910 & .3125 & 8.7439 & 32.8345 & 5.1719\\
+5 & \code{corrected_mpurge_order_components} & .2556 & .2897 & .3125 & 8.6965 & 32.8345 & 5.0178\\
+6 & \code{cycle_consistent_delay} & .1584 & .0905 & .6875 & 3.2785 & 21.4026 & .9159\\
+7 & \code{corrected_pba_printed_components} & .1442 & .0874 & .4375 & 4.3695 & 24.2796 & .6892\\
+8 & \code{corrected_mpurge_printed_components} & .1412 & .0851 & .4375 & 4.2370 & 24.2796 & .6799\\
+9 & \code{corrected_mpurge_order_star} & .0867 & .0455 & .9375 & 2.3526 & 17.8574 & .3959\\
+10 & \code{corrected_pba_order_star} & .0860 & .0451 & .9375 & 2.3336 & 17.7446 & .3724\\
+11 & \code{corrected_pba_printed_star} & .0758 & .0395 & .9375 & 2.6123 & 22.0860 & .7048\\
+12 & \code{corrected_mpurge_printed_star} & .0756 & .0394 & .9375 & 2.6459 & 22.7884 & .7124\\
+13 & \code{diffassign_bic_multimodal} & .0556 & .0500 & .0625 & 8.8376 & 21.4899 & 2.1195\\
+14 & \code{selfsup_deepsets_multimodal} & .0000 & .0000 & .0000 & 13.9164 & 22.7315 & 8.1569\\
+15 & \code{selfsup_attention_multimodal} & .0000 & .0000 & .0000 & 14.8455 & 30.7247 & 10.9501\\
+16 & \code{diffassign_bic_delay} & .0000 & .0000 & .0000 & 10.7496 & 21.8988 & 3.5806\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+Distances are metres.  These numbers support triage only: the analytic
+multimodal RFS/survival/consensus branches deserve full comparison, while the
+eight-epoch neural failure is inconclusive and cannot justify rejecting set
+attention or DeepSets.
+
+\IfFileExists{mpurge_vt_full_leaderboard.tex}{%
+  \input{mpurge_vt_full_leaderboard.tex}%
+}{%
+  \pendinghook{Place the final, audited 24-block table in
+  \code{research/four_paper_report/mpurge_vt_full_leaderboard.tex}.  It must
+  state run status, scene/noise block count, source/receiver hashes, raw-row
+  paths, primary versus oracle rows, and scene-block bootstrap intervals.}%
+}
+
+\section{Protocol III: SMART--LEA}
+
+\subsection{Frozen full reconstruction}
+
+The paper describes an irregular two-dimensional floorplan with four physical
+transmitters and four first-order VTs per transmitter (20 anchors total).  The
+replacement uses a disclosed $25\times25\m$ rectangle, invented Tx coordinates,
+and four wall images per Tx.  A single stored $100\times100$ survey at
+$0.25\m$ provides strict nested maps of 10,000, 2,500, 289, and 100 RPs for
+spacings $0.25,0.5,1.5,2.5\m$.  No coarse method sees dense-map rows.  Each of
+seeds 29, 47, and 71 has 1,000 fixed off-grid queries in clean and
+matched-noisy conditions.  Matched noise means 20 dB receiver SNR plus
+$0.25\m$ range, 2 dB power, and $5\degc$ direction perturbations after
+extraction.  Learned selection holds out complete 5 m spatial blocks, then a
+fresh model is fitted at the permitted spacing.
+
+SMART's literal primary input is an initial MCA coordinate, the coordinates of
+the 20 paper-known real/virtual transmitters, and the measured delay set.
+Richer map challengers instead receive only their declared same-acquisition
+features and RP coordinates.  The separately labelled legacy four-solve row
+uses the observable physical-Tx channel partition; it is not Algorithm 1 and
+is excluded from primary winner claims.
+
+\subsection{Core equations and method recipes}
+
+At iteration $t$, SMART recalculates every anchor range and jointly matches all
+20 values:
+\begin{equation}
+ \widetilde r_j^{(t)}=\|\widetilde{\mathbf x}^{(t)}-\mathbf v_j\|_2,
+ \qquad
+ \widetilde{\mathbf x}^{(t+1)}=arg\min_{\mathbf x}
+ \sum_{(a,j)\in\mathcal M^{(t)}}
+ \left(\|\mathbf x-\mathbf v_j\|_2-q_a\right)^2.
+\end{equation}
+The fixed-height correction evaluates
+$\sqrt{(x-v_{jx})^2+(y-v_{jy})^2+(z_r-v_{jz})^2}$ in both matching and least
+squares.  Total $P=5$ means half-window $p=2$.  The printed crossing test
+$(q_a-r_b)(q_c-r_d)<0$ and geometric test
+$(q_a-q_c)(r_b-r_d)<0$ are separate rows.
+
+The additional analytic scores reuse MCA, Chamfer, graph diffusion, subset
+consensus, and EvoMDP from Protocol I.  The combined delay score is
+\begin{equation}
+ D_i=\beta\widetilde D_i^{\rm Ch}+(1-\beta)
+ \left[\tfrac12\widetilde D_i^{W_1}+
+ \tfrac12\left(1-S_i^{\rm MCA}/\max_jS_j^{\rm MCA}\right)\right].
+\end{equation}
+For unit-normalized array-PDP $\mathbf c$, coherent distance is
+$D_i^{\rm CIR}=1-\mathbf c_q^\top\mathbf c_i$; delay--CIR uses
+$\eta\widetilde D_i^{\rm Ch}+(1-\eta)\widetilde D_i^{\rm CIR}$.
+Multimodal assignment uses Hungarian matching with
+\begin{equation}
+ C_{ab}=|r_a-r_b|/(0.5\m)+|P_a-P_b|/(3\,\mathrm{dB})+
+ \arccos(\mathbf u_a^\top\mathbf u_b)/(10\degc),
+\end{equation}
+plus an unmatched-path penalty.
+
+Survey-built VTs minimize a robust range residual over persistent tracks,
+\begin{equation}
+ \widehat{\mathbf v}_k=\arg\min_{v_x,v_y,h\ge0}
+ \sum_{i\in\mathcal T_k}\rho\!\left(
+ \sqrt{(x_i-v_x)^2+(y_i-v_y)^2+h^2}-r_{ik}\right).
+\end{equation}
+The differentiable variant alternately Sinkhorn-normalizes
+$A_{iak}\propto e^{-|r_{ia}-d_{ik}|/\tau}$ and minimizes the robust
+assignment-weighted range loss.  True VTs are used only after fitting for an
+audit error.
+
+\footnotesize
+\begin{longtable}{@{}p{0.055\linewidth}p{0.37\linewidth}p{0.52\linewidth}@{}}
+\toprule ID & Artifact key & Reproduction recipe\\\midrule
+\endfirsthead\toprule ID & Artifact key & Reproduction recipe\\\midrule\endhead
+S1 & \code{majid_mca_eps1} & MCA with $\epsilon=1\m$, return the best RP; room centre on no evidence.\\
+S2 & \code{majid_smart_lea1_joint_totalP5_printed} & MCA start, one joint 20-anchor SMART iteration, total $P=5$, printed crossing.\\
+S3 & \code{majid_smart_lea4_joint_totalP5_printed} & Repeat S2 for four iterations.\\
+S4 & \code{smart_lea4_joint_totalP5_geometric_cross} & S3 with geometric/order crossing only.\\
+S5 & \code{smart_lea4_joint_cited_halfwindow5_printed} & S3 with half-window 5 (total 11) to bracket the cited-parameter ambiguity.\\
+S6 & \code{smart_lea4_fixed_height_totalP5_geometric} & S4 with the known receiver height in three-dimensional anchor ranges.\\
+S7 & \code{legacy_per_tx_fusion_totalP5_printed} & Split by observable physical Tx, run four five-anchor solves, robustly fuse; diagnostic only.\\
+S8 & \code{corrected_mpurge_map_prefilter24} & Exact Chamfer shortlist 24 RPs, evaluate corrected coverage-penalized MPUrge only there, inverse top-three.\\
+S9 & \code{symmetric_chamfer_1nn} & Compute symmetric delay Chamfer and return its single best RP.\\
+S10 & \code{chamfer_temperature} & Development-select $K\in\{3,5,9\}$ and $T$, then softmax-average the top Chamfer RPs.\\
+S11 & \code{combined_delay_score} & Median-normalize Chamfer, Wasserstein, and MCA complement; select $\beta$ on spatial development blocks.\\
+S12 & \code{subset_consensus} & Full/delete-one delay hypotheses, robust inlier filter, mean coordinate.\\
+S13 & \code{graph_diffusion} & Convert Chamfer scores to a grid posterior and diffuse through a normalized $3\times3$ kernel.\\
+S14 & \code{evomdp_rank_frozen_transfer} & Apply the frozen eight-distance genome without refitting its weights.\\
+S15 & \code{coherent_array_pdp_temperature} & Cosine distance between noisy normalized array-PDP vectors, temperature-decode the map.\\
+S16 & \code{range_power_aoa_assignment} & Hungarian range/power/AoA matching with unmatched penalty, temperature-average best RPs.\\
+S17 & \code{delay_cir_combined} & Development-select the normalized Chamfer/PDP-cosine mixture $\eta$.\\
+S18 & \code{pointnet_delay} & Shared delay encoder, masked mean/max/count pooling, direct coordinate head.\\
+S19 & \code{pointnet_range_power_aoa} & S18 with noisy $[r,P,\mathbf u]$ tokens.\\
+S20 & \code{query_reference_attention_delay} & Embed query and shortlisted reference delay sets; query-to-reference multihead attention; candidate softmax.\\
+S21 & \code{query_reference_attention_multimodal} & S20 with noisy range/power/AoA tokens.\\
+S22 & \code{candidate_pointnet_reranker_delay} & Independently PointNet-encode query/candidate sets and score encoding difference, RP coordinate, and Chamfer diagnostic.\\
+S23 & \code{candidate_path_cross_attention_multimodal} & Each query path cross-attends to each candidate's paths; masked-pool and softmax-average coordinates.\\
+S24 & \code{caez_style_delay_probability_mlp} & Fixed delay vector to one logit per allowed RP; posterior coordinate mean.\\
+S25 & \code{caez_style_cir_probability_mlp} & S24 with a 256-element pooled noisy array-PDP vector.\\
+S26 & \code{extra_trees_delay_features} & ExtraTrees on 20 padded delays, 19 gaps, count, mean, and standard deviation.\\
+S27 & \code{analytic_anchor_residual} & Chamfer-temperature anchor plus delay features/score margin/local spread; bounded $5\m\tanh$ correction.\\
+S28 & \code{rrle_moe} & Route among Chamfer, ExtraTrees, delay PointNet, and analytic residual using spatially held-out predicted expert errors.\\
+S29 & \code{lea4_mpurge_track_vts} & Build survey-neighbour associations with corrected MPUrge, robustly fit persistent VTs, feed them to fixed-height LEA4.\\
+S30 & \code{lea4_diffassign_vts} & Initialize S29 VTs, refine with Sinkhorn range assignment on CUDA, feed the fitted set to the same LEA4.\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\subsection{Complete SMART macro leaderboard}
+
+The table macro-averages mean error across the four spacings, separately for
+clean and matched-noisy cells; the final column equally averages all eight
+condition/spacing cells.  Every cell contains 3,000 protected query rows (three
+seeds times 1,000 queries).  S7 is shown for completeness but marked diagnostic.
+
+\scriptsize
+\begin{longtable}{@{}r p{0.43\linewidth}p{0.20\linewidth}rrr@{}}
+\toprule Rank & Method & Track & Clean & Noisy & All\\\midrule
+\endfirsthead\toprule Rank & Method & Track & Clean & Noisy & All\\\midrule\endhead
+1 & \code{range_power_aoa_assignment} & multimodal & .3304 & .5219 & .4261\\
+2 & \code{delay_cir_combined} & multimodal & 1.7888 & 1.7246 & 1.7567\\
+3 & \code{query_reference_attention_multimodal} & learned multimodal & 1.4695 & 2.3953 & 1.9324\\
+4 & \code{coherent_array_pdp_temperature} & multimodal & 2.1407 & 2.0927 & 2.1167\\
+5 & \code{symmetric_chamfer_1nn} & primary & 2.4668 & 2.7267 & 2.5967\\
+6 & \code{corrected_mpurge_map_prefilter24} & primary & 2.6957 & 3.0294 & 2.8626\\
+7 & \code{pointnet_range_power_aoa} & learned multimodal & 2.7296 & 3.1246 & 2.9271\\
+8$^\dagger$ & \code{legacy_per_tx_fusion_totalP5_printed} & diagnostic & 2.8405 & 3.4094 & 3.1249\\
+9 & \code{subset_consensus} & primary & 2.9530 & 3.3626 & 3.1578\\
+10 & \code{evomdp_rank_frozen_transfer} & frozen transfer & 3.0084 & 3.4497 & 3.2290\\
+11 & \code{combined_delay_score} & primary & 2.8842 & 4.6757 & 3.7799\\
+12 & \code{chamfer_temperature} & primary & 3.6735 & 4.1436 & 3.9086\\
+13 & \code{candidate_pointnet_reranker_delay} & learned & 3.7571 & 4.3277 & 4.0424\\
+14 & \code{candidate_path_cross_attention_multimodal} & learned multimodal & 4.0339 & 4.1794 & 4.1067\\
+15 & \code{query_reference_attention_delay} & learned & 3.9112 & 4.3843 & 4.1477\\
+16 & \code{smart_lea4_fixed_height_totalP5_geometric} & analytic correction & 3.8254 & 4.6683 & 4.2469\\
+17 & \code{smart_lea4_joint_totalP5_geometric_cross} & ambiguity bracket & 3.8375 & 4.6767 & 4.2571\\
+18 & \code{analytic_anchor_residual} & learned hybrid & 3.7423 & 5.0162 & 4.3792\\
+19 & \code{majid_smart_lea1_joint_totalP5_printed} & paper primary & 3.9455 & 4.8167 & 4.3811\\
+20 & \code{majid_smart_lea4_joint_totalP5_printed} & paper primary & 3.9393 & 4.8266 & 4.3829\\
+21 & \code{smart_lea4_joint_cited_halfwindow5_printed} & ambiguity bracket & 4.0092 & 4.8396 & 4.4244\\
+22 & \code{majid_mca_eps1} & paper primary & 4.0484 & 4.8740 & 4.4612\\
+23 & \code{graph_diffusion} & primary & 4.3962 & 5.2339 & 4.8151\\
+24 & \code{caez_style_cir_probability_mlp} & learned multimodal & 5.1453 & 5.1844 & 5.1648\\
+25 & \code{extra_trees_delay_features} & learned & 3.6889 & 7.4714 & 5.5802\\
+26 & \code{lea4_mpurge_track_vts} & survey geometry & 7.8734 & 7.8749 & 7.8742\\
+27 & \code{lea4_diffassign_vts} & survey geometry & 7.6689 & 8.2406 & 7.9547\\
+28 & \code{rrle_moe} & learned hybrid & 6.2895 & 9.9100 & 8.0998\\
+29 & \code{caez_style_delay_probability_mlp} & learned & 7.5507 & 9.4283 & 8.4895\\
+30 & \code{pointnet_delay} & learned & 9.2694 & 9.3757 & 9.3225\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+$^\dagger$Not eligible for the primary winner because it changes the paper's joint
+20-anchor operation into four Tx-partitioned solves.  Metres throughout.
+
+The cell-wise winner changes with density and noise: fixed-height geometric
+SMART wins clean $0.25\m$ (0.0198 m) and $0.5\m$ (0.0562 m);
+range/power/AoA assignment wins clean $1.5\m$ (0.3197 m), clean $2.5\m$
+(0.8576 m), noisy $1.5\m$ (0.4931 m), and noisy $2.5\m$ (1.0460 m);
+delay--CIR wins noisy $0.25\m$ (0.1338 m); multimodal query--reference
+attention wins noisy $0.5\m$ (0.2266 m).  This is why a single macro rank must
+not replace per-density reporting.
+
+\subsection{All 30 methods in all eight SMART cells}
+
+\begin{landscape}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{@{}p{0.34\linewidth}rrrrrrrr@{}}
+\toprule
+Method & C-.25 & C-.5 & C-1.5 & C-2.5 & N-.25 & N-.5 & N-1.5 & N-2.5\\
+\midrule
+\endfirsthead
+\toprule Method & C-.25 & C-.5 & C-1.5 & C-2.5 & N-.25 & N-.5 & N-1.5 & N-2.5\\\midrule
+\endhead
+\code{range_power_aoa_assignment} & .060 & .084 & .320 & .858 & .241 & .308 & .493 & 1.046\\
+\code{delay_cir_combined} & .088 & .207 & 2.607 & 4.254 & .134 & .229 & 2.506 & 4.030\\
+\code{query_reference_attention_multimodal} & .069 & .129 & .570 & 5.110 & .181 & .227 & 2.032 & 7.141\\
+\code{coherent_array_pdp_temperature} & .164 & .483 & 3.472 & 4.444 & .165 & .599 & 3.383 & 4.224\\
+\code{symmetric_chamfer_1nn} & .102 & .202 & 2.720 & 6.843 & .320 & .499 & 3.204 & 6.883\\
+\code{corrected_mpurge_map_prefilter24} & .041 & .111 & 3.820 & 6.810 & .215 & .404 & 4.443 & 7.056\\
+\code{pointnet_range_power_aoa} & .661 & 1.109 & 6.830 & 2.318 & 1.373 & 1.844 & 5.409 & 3.872\\
+\code{legacy_per_tx_fusion_totalP5_printed} & .071 & .142 & 4.575 & 6.574 & .776 & 1.413 & 4.852 & 6.597\\
+\code{subset_consensus} & .044 & .190 & 4.488 & 7.090 & .282 & .797 & 5.125 & 7.245\\
+\code{evomdp_rank_frozen_transfer} & .048 & .192 & 4.411 & 7.382 & .318 & .843 & 5.093 & 7.545\\
+\code{combined_delay_score} & .145 & .439 & 3.468 & 7.485 & .346 & 1.883 & 7.416 & 9.058\\
+\code{chamfer_temperature} & .060 & .164 & 5.999 & 8.471 & .303 & .804 & 7.281 & 8.186\\
+\code{candidate_pointnet_reranker_delay} & .059 & .127 & 6.081 & 8.762 & .337 & 1.045 & 7.018 & 8.911\\
+\code{candidate_path_cross_attention_multimodal} & .064 & .167 & 7.031 & 8.874 & .213 & .455 & 7.008 & 9.041\\
+\code{query_reference_attention_delay} & .065 & .191 & 6.682 & 8.707 & .342 & 1.137 & 7.149 & 8.910\\
+\code{smart_lea4_fixed_height_totalP5_geometric} & .020 & .056 & 6.080 & 9.146 & .845 & 1.787 & 6.687 & 9.355\\
+\code{smart_lea4_joint_totalP5_geometric_cross} & .031 & .068 & 6.089 & 9.163 & .851 & 1.789 & 6.702 & 9.365\\
+\code{analytic_anchor_residual} & .085 & .223 & 6.117 & 8.544 & 1.510 & 2.824 & 7.455 & 8.275\\
+\code{majid_smart_lea1_joint_totalP5_printed} & .048 & .107 & 6.216 & 9.411 & .911 & 1.862 & 6.838 & 9.656\\
+\code{majid_smart_lea4_joint_totalP5_printed} & .037 & .079 & 6.207 & 9.434 & .922 & 1.843 & 6.812 & 9.729\\
+\code{smart_lea4_joint_cited_halfwindow5_printed} & .037 & .074 & 6.360 & 9.566 & .889 & 1.852 & 6.930 & 9.688\\
+\code{majid_mca_eps1} & .102 & .238 & 6.385 & 9.469 & .993 & 1.967 & 6.932 & 9.604\\
+\code{graph_diffusion} & .060 & .166 & 7.936 & 9.423 & 1.157 & 1.362 & 9.185 & 9.233\\
+\code{caez_style_cir_probability_mlp} & .446 & 1.327 & 9.374 & 9.434 & .501 & 1.510 & 9.336 & 9.391\\
+\code{extra_trees_delay_features} & .618 & 1.853 & 5.042 & 7.243 & 5.625 & 6.840 & 8.412 & 9.009\\
+\code{lea4_mpurge_track_vts} & 4.095 & 4.910 & 9.004 & 13.484 & 4.723 & 5.780 & 9.763 & 11.233\\
+\code{lea4_diffassign_vts} & 3.904 & 4.104 & 9.839 & 12.829 & 3.929 & 5.739 & 10.414 & 12.879\\
+\code{rrle_moe} & .265 & 1.456 & 11.000 & 12.438 & 5.666 & 8.531 & 12.875 & 12.568\\
+\code{caez_style_delay_probability_mlp} & 3.529 & 7.773 & 9.403 & 9.498 & 9.558 & 9.249 & 9.401 & 9.505\\
+\code{pointnet_delay} & 8.935 & 9.314 & 9.412 & 9.416 & 9.285 & 9.312 & 9.419 & 9.487\\
+\bottomrule
+\end{longtable}
+\endgroup
+\end{landscape}
+
+C denotes clean, N matched-noisy, and the suffix is map spacing in metres.
+Entries are mean position error in metres, read directly from the 240 summary
+rows in \code{smart_fair_full/results.json}.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}llYrrrr@{}}
+\toprule Condition & Spacing & Winner & Mean & RMSE & Median & P90\\\midrule
+clean & .25 & fixed-height geometric LEA4 & .0198 & .0224 & .0187 & .0341\\
+clean & .5 & fixed-height geometric LEA4 & .0562 & .8452 & .0187 & .0342\\
+clean & 1.5 & range/power/AoA assignment & .3197 & .3715 & .2813 & .5385\\
+clean & 2.5 & range/power/AoA assignment & .8576 & 1.2751 & .6847 & 1.3894\\
+noisy & .25 & delay--CIR combined & .1338 & .1524 & .1240 & .2276\\
+noisy & .5 & multimodal query--reference attention & .2266 & .3131 & .2038 & .3850\\
+noisy & 1.5 & range/power/AoA assignment & .4931 & .5753 & .4482 & .8863\\
+noisy & 2.5 & range/power/AoA assignment & 1.0460 & 1.9119 & .7351 & 1.5894\\
+\bottomrule
+\end{tabularx}
+\caption{Per-cell winner distributions.  The clean 0.5 m LEA4 row has an excellent median/P90 but RMSE 0.8452 m, exposing a rare severe tail.}
+\end{table}
+
+\section{Protocol IV: two-room CNN fingerprinting}
+
+\subsection{Printed protocol and corrected reconstruction}
+
+The paper uses Room A ($20\times8\m$) and Room B ($16\times12\m$), 20 RPs,
+60 AP positions, and seven obstacle configurations.  This grants
+$20\times60\times7=8{,}400$ labelled calibration acquisitions per room.  It
+tests four obstacle-count conditions, two APs per condition, and 400 uniform
+points per condition: 1,600 locked off-grid queries per room.  The printed
+input contains the nine ranges selected by \emph{observed} power, all 20 RP
+coordinate triplets, and the AP coordinate, reshaped to $6\times12$.
+
+The replacement preserves those counts and room sizes, but its disclosed AP
+positions, obstacle planes, and image-source propagation are not NIST Q-D.
+Each legal challenger receives no more than the printed 8,400 acquisitions;
+it may use noisy delay, power, receive AoA, and array CIR extracted there.  It
+may not add positions, simulations, clean channels, ray/VT IDs, query truth, or
+hidden obstacle identity in the deployable bracket.
+
+Within each AP/configuration group, 16 of 20 RP acquisitions fit and four
+validate.  Validation pseudo-queries compare only with fit-map rows and
+explicitly exclude their source acquisition:
+\begin{equation}
+ j\notin\mathcal C(Q_j),\qquad \mathcal C(Q_j)\subseteq\mathcal I_{\rm fit}.
+\end{equation}
+Candidate-network training instead uses independent measurement-corrupted,
+nonempty repeats of fit acquisitions.  A repeat may retain its original stored
+fit acquisition as a candidate so singleton AP/RP cells remain defined; this
+adds neither a spatial site nor a propagation simulation.  Empty validation and
+locked queries are retained and use frozen finite fallbacks.  Locked queries may
+use the complete acquired map only after all choices freeze.
+
+Reference methods have two non-equivalent information brackets.  The
+paper-matched sensitivity bracket supplies the true obstacle condition
+$R_i^{\rm oracle}=R_{aic_q}$ and is explicitly privileged.  The deployable
+environment-blind bracket selects, per RP,
+\begin{equation}
+ c_i^*=\arg\min_{c\in\{0,\ldots,6\}}D(Q,R_{aic}),\qquad
+ R_i^{\rm blind}=R_{aic_i^*},
+\end{equation}
+without exposing the label.  Direct models use neither bracket and are emitted
+once as protocol-independent rows.
+
+\subsection{Equations and the 25-method recipe index}
+
+Fit-only min--max scaling converts observed-power-ranked delays to
+$\widetilde d_{1:9}$.  The paper vector
+\begin{equation}
+ v=[\widetilde d_{1:9},\widetilde{\mathbf x}_{1:20}^{\rm RP},
+ \widetilde{\mathbf a}]\in\R^{72}
+\end{equation}
+is reshaped column-major to $1\times6\times12$.  The classifier outputs
+$p_i=\operatorname{softmax}(g)_i$ and
+$\widehat{\mathbf x}=\sum_i p_i\mathbf x_i$ with cross-entropy; the regressor
+minimizes the printed batch coordinate RMSE.  Three $2\times1$ convolution
+blocks yield 36,148 classifier and 36,190 regressor parameters; the paper's
+reported regressor count differs by 21 and remains unresolved.
+
+Map methods reuse MCA, corrected MPUrge, Chamfer, subset consensus, graph
+diffusion, and EvoMDP from Protocol I.  Multimodal pair costs are
+\begin{equation}
+ C_{ab}^{rP}=|r_a-r_b|+|P_a-P_b|/8,qquad
+ C_{ab}^{r\theta}=|r_a-r_b|+1.5\arccos(\mathbf u_a^\top\mathbf u_b).
+\end{equation}
+For active CIR taps, coherent ADP uses
+\begin{equation}
+ \rho_n=\frac{|\mathbf q_n^H\mathbf r_n|^2}
+ {\|\mathbf q_n\|_2^2\|\mathbf r_n\|_2^2},\qquad
+ D_{\rm ADP}=1-\frac{\sum_n\sqrt{E_{qn}E_{rn}}\rho_n}
+ {\sum_n\sqrt{E_{qn}E_{rn}}}.
+\end{equation}
+Survey-built inverse consensus clusters $\mathbf v=\mathbf x_i+r\mathbf u$
+and proposes query coordinates $\widehat{\mathbf x}_{\ell k}=\mathbf v_k-r_\ell\mathbf u_\ell$.
+Beta-marginal visibility contributes
+$\log p(m\mid n)=\log B(2+m,1+n-m)-\log B(2,1)$.
+
+\footnotesize
+\begin{longtable}{@{}p{0.055\linewidth}p{0.37\linewidth}p{0.52\linewidth}@{}}
+\toprule ID & Planned artifact key & Reproduction recipe\\\midrule
+\endfirsthead\toprule ID & Planned artifact key & Reproduction recipe\\\midrule\endhead
+C1 & \code{majid_cnn_classifier} & Build the printed 72-vector, column-major reshape, three conv blocks, 20-way cross-entropy, posterior RP mean.\\
+C2 & \code{majid_cnn_regressor} & Same input/backbone as C1, two-coordinate head, printed batch-RMSE loss.\\
+C3--4 & \code{majid_mca_eps1}, \code{majid_mca_eps2} & MCA at $\epsilon=1$ and $2\m$ under the declared map bracket.\\
+C5 & \code{corrected_mpurge_map} & Coverage-corrected MPUrge, $p=6$, normalized pattern, printed crossing, inverse top-three.\\
+C6 & \code{symmetric_chamfer_inverse3} & Symmetric delay Chamfer, inverse-weight the best three.\\
+C7 & \code{symmetric_chamfer_softmax3} & C6 with fixed $T=.03$ softmax over the best three.\\
+C8 & \code{subset_consensus} & Full and path-subset Chamfer hypotheses, median-radius inlier fusion.\\
+C9 & \code{graph_diffusion} & Rank-transform MPUrge evidence, diffuse over the two-nearest-RP graph, blend 75\% analytic and 25\% graph mode.\\
+C10 & \code{evomdp_frozen_transfer} & Frozen eight-distance mixture; fit only feature scales, then top-three temperature decode.\\
+C11 & \code{range_power_chamfer} & Symmetric nearest-neighbour matching with $C^{rP}$; top-three $T=.15$ head.\\
+C12 & \code{range_aoa_chamfer} & Same with $C^{r\theta}$.\\
+C13 & \code{dichasus_coherent_adp_8nn} & Noise-gated coherent ADP, spatially distinct best eight RPs, temperature barycentre.\\
+C14 & \code{assigned_vt_inverse_consensus} & Survey-build VTs from range/AoA proposals, form query inverse proposals, geometric-median consensus blended with a coarse delay pose.\\
+C15 & \code{beta_marginal_vt_survival} & One-to-one inverse-proposal/VT assignment plus Beta-integrated support and unmatched penalties, top-three decode.\\
+C16 & \code{pointnet_delay} & Shared scalar-delay encoder, masked mean/max/count, AP context, direct coordinate head.\\
+C17 & \code{pointnet_multimodal} & C16 with noisy range/power/AoA tokens.\\
+C18 & \code{set_attention_multimodal} & Two masked four-head self-attention blocks without positional encoding, invariant pooling, direct coordinate head.\\
+C19 & \code{candidate_pointnet_reranker} & Independently set-encode query/reference, add coordinate/AP/analytic score, guarded candidate softmax.\\
+C20 & \code{candidate_set_attention} & C19 with self-attended query/reference encoders.\\
+C21 & \code{genuine_candidate_cross_attention} & Each query path attends to candidate paths; pool $[Q,A,Q-A]$ with map/AP diagnostics and guarded logits.\\
+C22 & \code{caez_cir_probability_mlp} & Pool noisy CIR magnitude to 64 bins, concatenate AP coordinate, output 20 RP probabilities and their coordinate mean.\\
+C23 & \code{analytic_anchor_residual} & Environment-blind MPUrge anchor plus multimodal PointNet and score margin; bounded $0.25\tanh$ update.\\
+C24 & \code{survival_cir_toa_extratrees} & ExtraTrees on 32 CIR energy-survival samples, first ToA, path count, and AP coordinate.\\
+C25 & \code{rrle_map_aware_moe} & Freeze environment-blind MPUrge, Chamfer, and ADP experts; learn validation-error/disagreement router; softmax-mix coordinates.\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\IfFileExists{cnn_full_leaderboard.tex}{%
+  \input{cnn_full_leaderboard.tex}%
+}{%
+  \pendinghook{Place the corrected full table in
+  \code{research/four_paper_report/cnn_full_leaderboard.tex}.  It must report
+  Room A/B separately; oracle-condition, environment-blind, and
+  protocol-independent provenance; all 25 unique methods without duplicated
+  predictions; AP-within-condition paired intervals; seed counts; raw-row,
+  checkpoint, source, receiver, and acquisition hashes.}%
+}
+
+The superseded \code{cnn_fair_smoke} predates strict leave-self validation and
+provenance corrections; none of its values enters this report.  Published
+context only: Room A classifier 1.82 m, regressor 1.84 m, MCA-1 2.58 m; Room B
+classifier 2.14 m, regressor 1.47 m, MCA-1 3.65 m.  These are paper values, not
+replacement rows.
+
+\clearpage
+\section{Compact causal and multilevel evidence}
+
+This section is intentionally limited to at most two pages and is not inserted
+into any static-protocol leaderboard.  Temporal filtering has a different
+information budget; active multilevel calibration has a different output
+question.
+
+\subsection{Confirmed positive causal sequential result}
+
+G2 wraps the frozen corrected-MPUrge RP score vector.  Rank scores form the
+emission and surveyed RP distances form the transition:
+\begin{align}
+ \ell_t(i)&=\exp\!\left[-\beta\,
+ \frac{\operatorname{rank}(s_t(i))}{N-1}\right],\\
+ T_{ij}&\propto\exp[-\|\mathbf x_i-\mathbf x_j\|_2^2/(2\sigma_T^2)],\\
+ p_t&=\operatorname{normalize}\{\ell_t\odot(T^\top p_{t-1})\},\qquad
+ \widehat{\mathbf x}_t=\sum_{i\in\operatorname{top}K(p_t)}
+ \frac{p_t(i)}{\sum_{j\in K}p_t(j)}\mathbf x_i.
+\end{align}
+Earlier frames froze $\beta=8$, $\sigma_T=.6\m$, zero extra stay weight, and
+$K=5$ before three shifted 200-frame confirmation segments were opened.  The
+predictor uses only past belief, current analytic scores, and RP coordinates;
+no future observation or query coordinate enters it.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule Method & Mean & Median & P90\\\midrule
+G2 causal analytic HMM/particle bank & .3802 & .2793 & .7907\\
+All-path PointNet & .8121 & .3405 & 1.3887\\
+Corrected MPUrge single-frame & .9654 & .3503 & 2.4194\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Across 1,350 matched rows / 270 physical frames, G2 reduces mean error versus
+PointNet by $0.4319\m$, frame-block CI $[0.3541,0.5137]\m$, and versus static
+MPUrge by $0.5852\m$, CI $[0.4958,0.6783]\m$.  This is a confirmed positive
+result, but only for ordered trajectories.
+
+\subsection{Honest causal multilevel calibration: useful, not a confirmed win}
+
+Nine nested acquisition policies choose 12, 20, or 30 of 72 survey candidates
+without reading any unselected fingerprint: spatial farthest, Chebyshev,
+polynomial Leja, Smolyak, Sobol, GP variance, Bayesian quadrature, FEM
+variation, and surrogate disagreement.  Each policy renders the missing map
+with its development-frozen polynomial/FEM/RBF choice and localizes 36 protected
+queries.  The causal acquisition oracle recorded zero unselected reads, no
+dense-map selection, no query access, and nested paths.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}rYrrrr@{}}
+\toprule Budget & Lowest observed policy & Mean & Spatial mean & Reduction & 95\% CI\\\midrule
+12 & spatial farthest & 1.5251 & 1.5251 & .0000 & $[0,0]$\\
+20 & causal FEM variation & 1.4744 & 1.5462 & .0718 & $[-.1534,.3035]$\\
+30 & causal GP variance & 1.3434 & 1.4271 & .0837 & $[-.1002,.2674]$\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The positive point estimates at budgets 20 and 30 have intervals crossing
+zero, so the correct conclusion is neutral rather than a win.  An earlier
+``goal-surplus'' result is retracted as calibration-savings evidence because it
+read every unselected fingerprint.  Recent quadrature/multifidelity ideas are
+therefore not promoted in the headline report: under the honest oracle they
+did not show a great confirmed result.
+
+\clearpage
+\section{Release and audit ledger}
+
+\small
+\begin{tabularx}{\linewidth}{@{}p{0.16\linewidth}p{0.18\linewidth}p{0.20\linewidth}Y@{}}
+\toprule Evidence block & Status & Auditable scale & Release ruling\\\midrule
+MPUrge--MAP full & \good{PASS with disclosed post-run source mutation} & 40,000 primary rows; 33,600 learned seed rows; 16 conditions; 25 methods & Publish as replacement-scene evidence. All 34 focused checks and invariance/edge tests pass.\\
+SMART full & \good{FULL\_COMPLETE; integrity PASS} & 720,000 raw rows; 24 scenarios; 30 methods & Publish as replacement-scene evidence; retain legacy Tx-partition row as diagnostic.\\
+Original MPUrge smoke & \good{Quick smoke complete} & 1 scene; 2 noise levels; 16 primary rows; all 12 stored hashes recomputed & Retain only as diagnostic history; the audited full run supersedes its ranks.\\
+Original MPUrge full & \good{FULL\_COMPLETE; independent audit PASS} & 24/24 blocks; 18 primary methods; 123,760 query rows; 86 manifest entries & Publish as replacement-scene evidence; keep the true-cardinality row oracle-only and disclose high-noise collapse and BA cap sensitivity.\\
+CNN legacy smoke & \caution{SUPERSEDED} & Old quick artifact & Do not quote; it predates leave-self and provenance fixes.\\
+CNN corrected full & \good{FULL\_COMPLETE; 21-check independent audit PASS} & 115,200 rows; 25 unique methods; 72 summaries; 1,600 queries per room/bracket row & Publish with privileged, environment-blind, and protocol-independent rows separated; never compare replacement-scene values numerically with published NIST Q-D values.\\
+G2 causal & \good{PASS} & 1,350 rows / 270 frames & Publish separately as sequential evidence, never in the static table.\\
+Causal multilevel & \good{Integrity PASS; no confirmed gain} & 27 policy-budget summaries; 36 protected queries each & Publish the honest neutral finding; never restore the invalid oracle win.\\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\subsection{Hash and provenance resolution}
+
+The MAP manifest preserves receiver SHA-256\\
+\texttt{7e990931\allowbreak{}2d9f9330\allowbreak{}e5e3d37f\allowbreak{}7ab39627\allowbreak{}32b25005\allowbreak{}03e2c111\allowbreak{}3e09c3f1\allowbreak{}d18da8f6};
+the SMART manifest preserves its imported receiver SHA-256 beginning
+\texttt{5a4867f3d1363c54}.  A concurrent task changed the shared receiver after
+those completed runs and restored its semantics without byte-identical text;
+the current file hashes to
+\texttt{10962bf2ab1edf34\allowbreak{}95879c2693f3e75a\allowbreak{}d1aeabf68c5af359\allowbreak{}d9f108645d3b5e67}.
+The manifests must not be rewritten to imply that current bytes generated old
+rows.  Completed result/checkpoint hashes remain intact; the mismatch is
+resolved by disclosure, not by altering run outputs.
+
+\subsection{Exact evidence paths}
+
+All paths below are relative to the project root.
+\footnotesize
+\begin{longtable}{@{}p{0.27\linewidth}p{0.68\linewidth}@{}}
+\toprule Purpose & Path\\\midrule
+MAP aggregates & \code{research/four_paper_report/corrected_mpurge_map_full/aggregate_metrics.json}\\
+MAP paired intervals & \code{research/four_paper_report/corrected_mpurge_map_full/paired_bootstrap_vs_corrected_majid.json}\\
+MAP raw/seed rows & \code{research/four_paper_report/corrected_mpurge_map_full/raw_predictions.jsonl}; \code{learned_seed_predictions.jsonl}\\
+MAP audit/provenance & \code{research/four_paper_report/corrected_mpurge_map_full/focused_result_audit.json}; \code{provenance_resolution.json}\\
+SMART result/raw/audit & \code{research/four_paper_report/smart_fair_full/results.json}; \code{raw_predictions.jsonl.gz}; \code{integrity_audit.json}\\
+VT diagnostic smoke & \code{research/four_paper_report/corrected_mpurge_vt_smoke/results.json}; \code{SHA256SUMS.txt}\\
+VT audited full & \code{research/four_paper_report/corrected_mpurge_vt_full_v3/results.json}; \code{all_method_leaderboard.csv}; \code{block_audit.json}\\
+CNN full result/audits & \code{research/four_paper_report/cnn_fair_corrected_full_final2/results.json}; \code{integrity_audit.json}; \code{independent_integrity_audit.json}\\
+CNN corrected runner & \code{experiments/four_paper_report/run_cnn_fair.py}; \code{test_cnn_fair.py}; \code{audit_cnn_full_results.py}\\
+Four-paper freeze/audits & \code{research/four_paper_report/protocol_freeze.md}; \code{mpurge_protocol_audit.md}; \code{smart_cnn_protocol_audit.md}\\
+Method dependency inventory & \code{research/four_paper_report/requested_method_inventory.md}\\
+G2 causal evidence & \code{research/campaign_8plus4/g2_replication_results.json}; \code{g2_replication_rows.jsonl}\\
+Multilevel evidence & \code{research/multilevel_idp/confirmation_results.json}; \code{confirmation_rows.jsonl}\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\subsection{Minimal reproducibility checklist}
+
+\begin{enumerate}
+\item Materialize and hash survey/query observations before training.  Verify
+independent survey/query corruption and absence of forbidden identity fields.
+\item Enforce the exact paper-specific acquisition count.  At sparse SMART
+spacing, subset the stored dense acquisition before any fit; for CNN, never
+exceed the printed 8,400 acquisitions per room.
+\item Fit normalization and choose all hyperparameters on grouped calibration
+only.  Exclude the pseudo-query's source row for validation.  Independently
+corrupted nonempty training repeats may retain their stored fit acquisition as
+a candidate when needed to keep singleton AP/RP cells defined; disclose this
+policy and add no spatial site or propagation call.
+\item Freeze configuration, source hashes, seed list, fallbacks, brackets, and
+method registry before opening locked queries.  Keep learned seeds separate in
+raw evidence before ensembling.
+\item Save prediction coordinates or VT sets, scoring truth, physical block
+keys, runtime, feature provenance, map-information bracket, checkpoints, and
+hashes.  Reconstruct every reported error mechanically from raw rows.
+\item Run empty/no-evidence, padding, path-shuffle, candidate-shuffle, and
+finite-output tests.  Cluster paired intervals by physical query/AP/scene, not
+augmentation row.
+\item Label every number as paper context, full reconstruction, diagnostic
+smoke, or oracle sensitivity.  Never use a completed task's number to fill
+another task's missing table.
+\end{enumerate}
+
+\section{Bottom line}
+
+On the completed MAP replacement, the best dependable row is the
+same-acquisition range/power/AoA Beta-shaped survival adapter at $0.2528\m$
+mean, versus $1.0638\m$ for corrected prose-consistent Majid.  Survival--CIR
+and the multimodal residual graph are close; permutation-invariant
+self-attention and genuine cross-attention are also strong.  Controlled
+feature ablations show that most of this margin comes from richer noisy sensing,
+not attention alone.
+
+On SMART, the dominant method depends sharply on map density and receiver
+noise.  Fixed-height geometric LEA4 is exceptionally accurate on dense clean
+maps but has a rare severe tail at 0.5 m; multimodal assignment dominates
+sparser maps, delay--CIR wins the densest noisy map, and multimodal attention
+wins noisy 0.5 m.  The all-cell table must accompany any headline.
+
+On original MPUrge VT construction, two-sided registration has the highest
+primary VT-set F1 (0.5717), Bernoulli RFS has the smallest Chamfer distance
+(0.6528 m), and beta-marginal survival has the smallest localization error
+(1.4106 m); all degrade severely at the strongest noise, so no single robust
+winner is claimed.  On the corrected CNN reconstruction, multimodal PointNet
+wins both rooms at 0.7946 and 0.8251 m mean error.  Its advantage is paired and
+large within the replacement scene, but it is not a numerical claim against the
+paper's unavailable NIST Q-D scene.  Separately, the causal analytic G2 filter
+is a confirmed positive sequential extension, whereas honest active multilevel
+calibration is neutral under paired uncertainty.
+
+\end{document}

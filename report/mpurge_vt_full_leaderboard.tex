@@ -1,0 +1,92 @@
+\subsection*{Audited full-run replacement}
+
+\statusbox{\good{FULL\_COMPLETE; independent artifact audit PASS.} The disclosed
+replacement benchmark contains 24 scene/noise blocks (six independent scenes
+$\times$ four noise levels), 18 primary methods, 6,188 block-metric rows, and
+123,760 stored query predictions.  The true-cardinality oracle is diagnostic
+and excluded from every primary rank.}
+
+\begingroup
+\scriptsize
+\setlength{\LTleft}{0pt}\setlength{\LTright}{0pt}
+\begin{longtable}{r p{0.22\linewidth} l rr p{0.13\linewidth} p{0.145\linewidth} p{0.145\linewidth}}
+\caption{Original-MPUrge VT construction, complete 24-block replacement-scene
+run. Brackets are deterministic scene-block bootstrap 95\% CIs; distances are
+metres.}\label{tab:mpurge-vt-full-final}\\
+\toprule
+Rank & Method & Claim & P & R & F1 [95\% CI] & Chamfer [95\% CI] & Loc. [95\% CI] \\
+\midrule\endfirsthead
+\toprule
+Rank & Method & Claim & P & R & F1 [95\% CI] & Chamfer [95\% CI] & Loc. [95\% CI] \\
+\midrule\endhead
+1 & \code{two_sided_vt_registration} & primary & .5745 & .5700 & .5717 [.5470,.5971] & 1.0275 [.8359,1.2351] & 1.6455 [1.4025,1.8971] \\
+2 & \code{bernoulli_rfs_multimodal} & primary & .5034 & .6328 & .5562 [.5422,.5722] & .6528 [.5601,.7542] & 1.4383 [1.2201,1.6695] \\
+3 & \code{beta_marginal_survival_multimodal} & primary & .4709 & .6446 & .5395 [.5193,.5559] & .7766 [.5604,1.0554] & 1.4106 [1.3281,1.5024] \\
+4 & \code{diffassign_bic_multimodal} & primary & .4564 & .5948 & .5156 [.4681,.5527] & 1.0577 [.8073,1.3598] & 1.5711 [1.2798,1.8408] \\
+5 & \code{multipath_bundle_adjustment_noncheating} & primary & .5917 & .4376 & .5003 [.4394,.5690] & 2.6358 [2.1029,3.2317] & 2.0033 [1.7710,2.2145] \\
+6 & \code{aoa_power_inverse_consensus} & primary & .3218 & .6556 & .4217 [.4063,.4351] & .8241 [.7372,.9184] & 1.6250 [1.3943,1.8515] \\
+7 & \code{diffassign_bic_delay} & primary & .3100 & .4001 & .3485 [.3206,.3768] & 3.5305 [3.1710,3.9218] & 1.7616 [1.6019,1.9025] \\
+8 & \code{corrected_mpurge_order_components} & primary & .1263 & .1584 & .1313 [.0985,.1626] & 6.1565 [5.4041,6.7874] & 3.2410 [2.5112,4.0659] \\
+9 & \code{corrected_pba_order_components} & primary & .1270 & .1586 & .1303 [.0900,.1679] & 6.3960 [5.4433,7.3025] & 3.3268 [2.4874,4.3483] \\
+10 & \code{corrected_pba_printed_components} & primary & .0993 & .1540 & .1158 [.0746,.1624] & 5.9749 [5.2382,6.6700] & 3.3874 [2.6305,4.1117] \\
+11 & \code{selfsup_deepsets_multimodal} & primary & .1294 & .1035 & .1140 [.0611,.1653] & 3.6951 [2.7865,4.6029] & 2.0763 [1.7915,2.2851] \\
+12 & \code{corrected_mpurge_printed_components} & primary & .0939 & .1516 & .1103 [.0719,.1517] & 6.1957 [5.5566,6.8727] & 3.4667 [2.7188,4.1718] \\
+13 & \code{selfsup_attention_multimodal} & primary & .0829 & .0729 & .0773 [.0584,.0963] & 2.7805 [2.1840,3.3017] & 1.9563 [1.7196,2.1943] \\
+14 & \code{corrected_mpurge_order_star} & primary & .0248 & .6149 & .0475 [.0427,.0521] & 2.8050 [2.6703,2.9645] & 1.8173 [1.6346,2.0295] \\
+15 & \code{corrected_pba_order_star} & primary & .0246 & .6129 & .0471 [.0412,.0523] & 2.8160 [2.6963,2.9445] & 1.8044 [1.6452,1.9972] \\
+16 & \code{cycle_consistent_delay} & primary & .0171 & .5141 & .0329 [.0301,.0351] & 3.9508 [3.8342,4.0555] & 2.3876 [2.1027,2.7186] \\
+17 & \code{corrected_mpurge_printed_star} & primary & .0165 & .6274 & .0321 [.0290,.0355] & 3.1931 [3.0338,3.3776] & 1.9752 [1.6450,2.2918] \\
+18 & \code{corrected_pba_printed_star} & primary & .0159 & .6271 & .0310 [.0290,.0336] & 3.2148 [3.0433,3.3864] & 1.9251 [1.6159,2.2206] \\
+\midrule
+D & \code{diffassign_multimodal_oracle_cardinality_ablation} & oracle & .5750 & .5750 & .5750 [.5336,.6136] & 1.0766 [.8558,1.3117] & 1.5183 [1.2928,1.7289] \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+The printed/order and star/component ambiguities are separate native rows; no
+best-interpretation choice is hidden.  Two-sided registration has the highest
+primary F1, Bernoulli RFS the smallest Chamfer distance, and beta-marginal
+survival the smallest localization error.  Thus the run does not support one
+scalar ``winner.''
+
+\begin{table}[ht]
+\centering\scriptsize
+\caption{Noise collapse for the leading transferable methods and the strongest
+native MPUrge row. Each cell is F1/localization mean (m), averaged over six
+independent scenes.}\label{tab:mpurge-vt-noise-collapse}
+\begin{tabular}{lrrrr}
+\toprule
+Method & $\sigma_r=0$ & $.25$ & $1$ & $3$ m \\
+\midrule
+two-sided registration & .9769/.062 & .8603/.150 & .3337/1.272 & .1157/5.098 \\
+Bernoulli RFS & .9603/.059 & .8678/.167 & .3456/.893 & .0509/4.634 \\
+beta-marginal survival & .9253/.058 & .7551/.159 & .3812/.789 & .0965/4.636 \\
+multimodal DiffAssign & .8068/.063 & .7452/.283 & .4482/.918 & .0623/5.021 \\
+non-cheating multipath BA & .7469/.144 & .7489/.214 & .4786/1.803 & .0269/5.852 \\
+AoA/power consensus & .8190/.061 & .5487/.161 & .2609/1.046 & .0583/5.232 \\
+delay-only DiffAssign & .7383/.091 & .5692/.193 & .0865/1.500 & .0000/5.263 \\
+MPUrge order/components & .3637/1.515 & .1494/1.416 & .0098/4.061 & .0024/5.972 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All families collapse at $\sigma_r=3$ m, so the pooled means must not be read as
+uniform robustness.  Multipath bundle adjustment selected the configured
+$K_{\max}=7$ in 57 of 96 transmitter/block fits (other selected counts were
+$K=3$: 2, $K=4$: 3, $K=5$: 10, $K=6$: 24).  Its result is therefore explicitly
+\emph{cap-sensitive}; a larger, validation-frozen $K$ sweep is needed before
+interpreting its poor Chamfer or high-noise localization as an algorithmic
+limit.
+
+\noindent\textbf{Provenance.} Runner SHA-256
+\texttt{4f1562bcfb3c72a4c92101367d70252e}\allowbreak\texttt{f30ecfacf4d4c33870b2e914596984ce};
+immutable receiver SHA-256
+\texttt{0ef4c590832a4d7c8bfac784d7b4c8e}\allowbreak\texttt{87e266bea1bb580ed805aa24d399999a4};
+artifact-manifest SHA-256
+\texttt{b0cb05c96fb06b5b9e12ff01e6f1b10e}\allowbreak\texttt{9e37d6b746aa2c77da2a1b9b654eb9b0}.
+The independent audit counted 234,215 candidate rows, 23,696 beta-set rows,
+1,760,364 association rows, 123,760 query rows, 48 checkpoints, and 86
+manifested artifacts.  Exact evidence is under
+\code{research/four_paper_report/corrected_mpurge_vt_full_v3}.  This remains
+replacement-scene evidence, not an exact run of the unavailable paper
+simulator.

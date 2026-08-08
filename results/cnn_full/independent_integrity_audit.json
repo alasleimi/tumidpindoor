@@ -1,0 +1,39 @@
+{
+  "status": "PASS",
+  "checks": {
+    "full_complete_status": true,
+    "raw_sha_matches_result": true,
+    "integrity_sha_matches_result": true,
+    "frozen_runner_sha_matches_result": true,
+    "frozen_receiver_sha_matches_result": true,
+    "completion_runner_hash_matches_frozen": true,
+    "completion_receiver_hash_matches_frozen": true,
+    "runner_self_audit_pass": true,
+    "exact_row_count_115200": true,
+    "unique_protocol_room_method_query_keys": true,
+    "all_numeric_outputs_finite": true,
+    "stored_error_recomputes_from_coordinates": true,
+    "privileged_flag_only_on_paper_condition_protocol": true,
+    "two_sided_alias_has_no_rows": true,
+    "protocol_method_cardinalities_11_16_9": true,
+    "each_room_protocol_method_has_1600_queries": true,
+    "exactly_25_unique_methods": true,
+    "no_complete_prediction_vector_duplicated_across_protocols": true,
+    "summary_count_72": true,
+    "all_summary_metrics_recompute": true,
+    "paired_intervals_are_physical_query_clustered_and_recompute": true
+  },
+  "observed_rows": 115200,
+  "expected_rows": 115200,
+  "unique_methods": 25,
+  "protocol_method_counts": {
+    "environment_blind_map": 16,
+    "paper_condition_map": 11,
+    "protocol_independent": 9
+  },
+  "duplicate_complete_vectors": [],
+  "results_sha256": "6ff93a22f0ff381348b3e7c80d6ea556ee9f319cd6f6ffe8e73e177b508ee280",
+  "raw_rows_sha256": "2ef7b146265e5515f41b3da03b93b417556c04d67dd92ece69a4186f5fde3cb4",
+  "frozen_runner_sha256": "a5aa5f18b9807116df3bf54e0546a12b5dcc98a886c9cb447769f65bc45d9d90",
+  "frozen_receiver_sha256": "10962bf2ab1edf3495879c2693f3e75ad1aeabf68c5af359d9f108645d3b5e67"
+}
